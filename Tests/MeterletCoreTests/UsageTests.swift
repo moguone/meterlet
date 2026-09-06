@@ -105,7 +105,7 @@ private func fixture(_ file: String) throws -> Data {
 }
 
 @Test func languagesHaveMatchingTranslations() {
-    for key in ["usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly"] {
+    for key in ["usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly", "error.codexNotFound", "error.claudeNotFound", "error.claudeSignIn"] {
         #expect(L10n(.en).text(key) != key)
         #expect(L10n(.ja).text(key) != key)
         #expect(L10n(.en).text(key) != L10n(.ja).text(key))

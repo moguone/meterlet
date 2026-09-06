@@ -18,17 +18,31 @@ Two compact rows fit into a fixed 48-point menu bar item, leaving more room besi
 - Includes English and Japanese, with a language selector and localized dates and countdowns.
 - Checks every five minutes by default. Choose 1, 5, 10, or 15 minutes; checks pause during sleep and slow down in Low Power Mode or after errors.
 - Offers optional launch at login. No background CLI is kept running between checks.
-- Runs locally, without an application server, analytics, or third-party packages.
+- Runs locally, without an application server or analytics. [Sparkle](https://sparkle-project.org/) handles app updates.
 
 ## Install and set up
 
 1. Download the `macOS-arm64.zip` from [Releases](https://github.com/moguone/meterlet/releases), unzip it, and move **Meterlet.app** to Applications.
-2. Install and sign in to the official [Codex CLI](https://developers.openai.com/codex/cli/) and/or [Claude Code](https://code.claude.com/docs/en/setup). Complete their initial setup in Terminal first. A supported subscription and available quota information are required; API-key billing is not supported.
+2. Set up the providers you use, as described below. Meterlet can use their desktop runtimes or separately installed official CLIs. A supported subscription and available quota information are required; API-key billing is not supported.
 3. Open Meterlet and click its two-line menu item. Turn off any provider you do not use in Settings.
 
-Common CLI installation locations are detected automatically. The Codex app's bundled CLI is also supported. If detection fails, choose the executable in Settings, or enter its absolute path and press Return.
+Right-click the menu bar item for Usage, Settings, Check for Updates, and Quit. While Meterlet is active, use **⌘1** to open or close usage, **⌘,** for Settings, or **⌘Q** to quit. Before replacing an older version, quit it first. Only one copy stays running, even if you open the app from another folder.
+
+**Codex:** Meterlet can use the CLI inside the ChatGPT or Codex desktop app. It also discovers renamed or relocated apps registered with macOS. A separate Codex CLI install is optional. If sign-in is required, choose **Set up in Terminal** to use the official program’s sign-in flow.
+
+**Claude:** Once Claude desktop has downloaded its Code runtime, Meterlet can use it without a separate CLI install. Open the **Code** feature and complete its setup first. Desktop sign-in does not guarantee the runtime is signed in when launched separately; if prompted, use **Set up in Terminal** to finish Claude Code’s sign-in and initial setup. Meterlet does not extract the desktop app’s credentials. A chat-only installation with no downloaded Code runtime is insufficient. Separately installing [Claude Code CLI](https://code.claude.com/docs/en/setup) is also supported.
+
+A manually selected executable is fixed. Automatic detection tries the installed CLI first, then the desktop runtime if the CLI is missing or returns an authentication error. Network failures, rate limits, setup errors, and unrecognized output do not trigger a switch. If both installations require sign-in, Meterlet shows the sign-in error after trying both. The desktop runtime uses its own available authentication; Meterlet does not transfer credentials from the desktop app. Claude’s newest executable native desktop runtime is selected on each check; its VM runtime is excluded. If detection fails, choose the executable in Settings, or enter its absolute path and press Return. Desktop runtime locations are implementation details of the official apps and may change in future versions.
 
 **Official downloads are published after Developer ID signing and Apple notarization.** CI artifacts and default local builds are ad-hoc-signed development builds. macOS may block downloaded development builds; you can build the source locally. Get verified distribution builds from [Releases](https://github.com/moguone/meterlet/releases).
+
+## App updates
+
+Choose **Check for Updates…** from the menu bar’s right-click menu or Settings. Enable **Check for updates automatically** to check once a day (off by default). Each update requires your choice to download and install; automatic silent installation is disabled.
+
+Updates use the signed `appcast.xml` attached to the latest normal GitHub release. Drafts and prereleases are excluded. Sparkle verifies the update feed and archive signatures before installing, then replaces and relaunches Meterlet. An interrupted download or a failed signature check leaves the installed app in place.
+
+The first version with this feature must be installed manually; earlier versions cannot update themselves. Move Meterlet to Applications before using in-app updates. For development builds, use `OUTPUT_DIR=.build/candidate ./scripts/package-app.sh` to leave an existing build untouched. Packaging refuses to replace a running app.
 
 ## Missing data and limitations
 
@@ -43,13 +57,13 @@ Common CLI installation locations are detected automatically. The Codex app's bu
 
 Authentication stays in the official CLIs. Meterlet does not read or export auth tokens, API keys, browser cookies, conversations, or historical token logs. CLI output is parsed in memory and is not written to debug logs by the app.
 
-Only normalized percentages, window labels, reset times, and fetch timestamps are cached in `~/Library/Application Support/Meterlet/Usage/`, with owner-only file permissions. Preferences are stored in the app's standard macOS defaults. The official CLIs continue to manage their own authentication, local files, and service connections.
+Only normalized percentages, window labels, reset times, and fetch timestamps are cached in `~/Library/Application Support/Meterlet/Usage/`, with owner-only file permissions. Preferences are stored in the app's standard macOS defaults. The official CLIs continue to manage their own authentication, local files, and service connections. App update checks contact GitHub for release information and downloads; usage data and CLI credentials are not included. Sparkle system profiling is disabled.
 
 During a check, Codex receives an app-server usage read; Claude receives an auth-status check and `/usage` in a private probe directory, with tools, hooks, MCP, plugins, and auto-updating disabled by its safe-mode options. No model prompt or chat turn is submitted. Each probe has a timeout, and its own subprocesses are stopped after completion or cancellation. Between checks, a one-shot timer waits for the next scheduled event.
 
 ## Build from source
 
-Requires Apple Silicon, macOS 14+, and Xcode 16+ / Swift 6. No package dependencies or Xcode project generation are needed.
+Requires Apple Silicon, macOS 14+, and Xcode 16+ / Swift 6. Swift Package Manager fetches the pinned Sparkle framework; no Xcode project generation is needed.
 
 ```sh
 git clone https://github.com/moguone/meterlet.git
@@ -72,7 +86,7 @@ Developers with an Apple Developer ID certificate and configured notarytool prof
 ```sh
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 NOTARY_PROFILE="your-notary-profile" \
-VERSION="0.1.0" ./scripts/package-app.sh
+VERSION="0.2.0" ./scripts/package-app.sh
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, translations, and the project layout. CI builds and tests every push and pull request; version tags prepare draft releases. Signed distribution is verified before publication; see [the release guide](docs/RELEASING.md).
@@ -81,4 +95,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, translations, and the project 
 
 The integrations use OpenAI's [app-server account usage API](https://learn.chatgpt.com/docs/app-server), Anthropic's [`/usage` command](https://code.claude.com/docs/en/commands), and its documented [status-line fields](https://code.claude.com/docs/en/statusline). See Anthropic's [Fable plan limits](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan) for how model-specific allowances relate to the overall limit.
 
-[MIT](LICENSE). The source and geometric app artwork are original to this project.
+[MIT](LICENSE). The app source and geometric artwork are original to this project. Sparkle and its bundled components are covered by [third-party notices](THIRD_PARTY_NOTICES.md).

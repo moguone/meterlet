@@ -8,11 +8,11 @@ extension ProviderID {
 
 struct UsagePopover: View {
     @ObservedObject var store: UsageStore
+    var height: CGFloat = 680
     var settings: () -> Void
     var setup: (ProviderID) -> Void
     var quit: () -> Void
     private var l: L10n { store.l10n }
-    @State private var measuredContentHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,19 +41,32 @@ struct UsagePopover: View {
                 }
                 Spacer()
                 Button(l.text("action.refresh"), action: store.refresh).disabled(store.isRefreshing || store.demo)
-                Button(action: quit) { Image(systemName: "power") }
+                Button(action: quit) { Label(l.text("action.quitShort"), systemImage: "power") }
                     .help(l.text("action.quit")).accessibilityLabel(l.text("action.quit"))
             }
             .font(.system(size: 11)).buttonStyle(.plain)
             .padding(.horizontal, 20).padding(.vertical, 13)
         }
-        .frame(width: 360)
+        .frame(width: 360, height: height)
         .background(.regularMaterial)
         .environment(\.locale, l.locale)
     }
 
+    // Estimate only when opening. The viewport remains fixed while results arrive;
+    // longer or wrapped content scrolls without moving the header and footer.
+    static func preferredHeight(for store: UsageStore) -> CGFloat {
+        guard !store.providers.isEmpty else { return 180 }
+        let sections = store.providers.reduce(CGFloat(0)) { height, provider in
+            let state = store.state(provider)
+            let windows = state.snapshot?.windows.count ?? 0
+            let missingFable = provider == .claude && state.snapshot != nil && state.snapshot?.windows.contains(where: { $0.isFable }) == false
+            return height + 93 + CGFloat(windows) * 74 + (state.error == nil ? 0 : 76)
+                + (windows == 0 && state.error == nil ? 40 : 0) + (missingFable ? 46 : 0)
+        }
+        return min(680, max(180, sections + 94))
+    }
+
     private func contents(at now: Date) -> some View {
-        let height = measuredContentHeight > 0 ? measuredContentHeight : estimatedHeight
         return ScrollView {
             VStack(spacing: 0) {
                 if store.providers.isEmpty {
@@ -64,24 +77,9 @@ struct UsagePopover: View {
                     providerSection(provider, now: now)
                 }
             }
-            .background(GeometryReader { geometry in
-                Color.clear.preference(key: ContentHeightKey.self, value: geometry.size.height)
-            })
         }
-        .onPreferenceChange(ContentHeightKey.self) { measuredContentHeight = $0 }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(height: min(height, max(240, (NSScreen.main?.visibleFrame.height ?? 800) - 190), 650))
-    }
-
-    private var estimatedHeight: CGFloat {
-        if store.providers.isEmpty { return 80 }
-        return store.providers.reduce(0) { height, provider in
-            let state = store.state(provider)
-            let windows = state.snapshot?.windows.count ?? 0
-            let missingFable = provider == .claude && state.snapshot != nil && state.snapshot?.windows.contains(where: \.isFable) == false
-            return height + 93 + CGFloat(windows) * 74 + (state.error == nil ? 0 : 76)
-                + (windows == 0 && state.error == nil ? 40 : 0) + (missingFable ? 46 : 0)
-        }
+        .frame(maxHeight: .infinity)
     }
 
     private func providerSection(_ provider: ProviderID, now: Date) -> some View {
@@ -119,7 +117,9 @@ struct UsagePopover: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(l.text(error.messageKey)).font(.system(size: 11)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    if [.cliNotFound(provider), .signInRequired(provider), .setupRequired(provider), .unsupportedCLI(provider)].contains(error) {
+                    if error == .cliNotFound(provider) {
+                        Button(l.text("action.settings"), action: settings).buttonStyle(.link).font(.system(size: 11))
+                    } else if [.signInRequired(provider), .setupRequired(provider), .unsupportedCLI(provider)].contains(error) {
                         Button(l.text("action.openCLI")) { setup(provider) }.buttonStyle(.link).font(.system(size: 11))
                     }
                 }.padding(.bottom, 12)
@@ -132,11 +132,6 @@ struct UsagePopover: View {
         }
         .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 16)
     }
-}
-
-private struct ContentHeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
 struct UsageWindowRow: View {

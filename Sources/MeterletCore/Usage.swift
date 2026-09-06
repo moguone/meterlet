@@ -72,10 +72,31 @@ public enum UsageError: Error, Equatable, Sendable {
     case unavailable(ProviderID)
     case cancelled
 
+    static func isAuthenticationFailure(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return containsHTTPError(401, in: lower)
+            || ["not logged in", "not signed in", "not authenticated", "unauthenticated", "unauthorized",
+                "authentication required", "authentication failed", "authentication_error",
+                "please log in", "please login", "please sign in", "login required", "sign in required",
+                "token has expired", "token expired", "invalid access token", "invalid token"].contains(where: lower.contains)
+    }
+
+    static func isRateLimitFailure(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return containsHTTPError(429, in: lower) || lower.contains("too many requests")
+            || lower.contains("rate limit exceeded") || lower.contains("rate limit reached")
+    }
+
+    private static func containsHTTPError(_ status: Int, in text: String) -> Bool {
+        // Terminal output also includes version numbers such as 2.1.401 and 2.1.429.
+        text.range(of: #"\b(?:http|(?:api\s+)?error|status(?:\s+code)?)\s*[:=]?\s*\#(status)\b"#,
+                   options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
     public var messageKey: String {
         switch self {
-        case .cliNotFound: "error.cliNotFound"
-        case .signInRequired: "error.signIn"
+        case .cliNotFound(let provider): provider == .codex ? "error.codexNotFound" : "error.claudeNotFound"
+        case .signInRequired(let provider): provider == .claude ? "error.claudeSignIn" : "error.signIn"
         case .setupRequired: "error.setup"
         case .unsupportedCLI: "error.updateCLI"
         case .timedOut: "error.timeout"
