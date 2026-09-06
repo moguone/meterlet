@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import TokenViewerCore
+@testable import MeterletCore
 
 private let now = ISO8601DateFormatter().date(from: "2026-09-06T05:20:00Z")!
 private let tokyo = TimeZone(identifier: "Asia/Tokyo")!

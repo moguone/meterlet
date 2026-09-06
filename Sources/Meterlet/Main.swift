@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
-import TokenViewerCore
+import MeterletCore
 
 @main
-enum TokenViewerMain {
+enum MeterletMain {
     @MainActor static func main() {
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--probe"), args.indices.contains(index + 1),
@@ -30,7 +30,7 @@ enum TokenViewerMain {
         do {
             guard let executable = CLIResolver.resolve(provider) else { throw UsageError.cliNotFound(provider) }
             let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                .appendingPathComponent("Token Viewer/Probes/\(provider.rawValue)")
+                .appendingPathComponent("Meterlet/Probes/\(provider.rawValue)")
             let snapshot = try UsageClient(directory: root).fetch(provider, executable: executable, cancellation: cancellation)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

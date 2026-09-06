@@ -18,7 +18,7 @@ public struct UsageClient: Sendable {
                                  environment: CLIResolver.environment(), cancellation: cancellation)
         defer { cli.stop() }
         try cli.sendJSON(["id": 1, "method": "initialize", "params": [
-            "clientInfo": ["name": "token_viewer", "title": "Token Viewer", "version": "0.1.0"],
+            "clientInfo": ["name": "meterlet", "title": "Meterlet", "version": "0.1.0"],
         ]])
         var buffer = Data()
         _ = try response(id: 1, cli: cli, buffer: &buffer)

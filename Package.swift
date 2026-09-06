@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "TokenViewer",
+    name: "Meterlet",
     defaultLocalization: "en",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "TokenViewer", targets: ["TokenViewer"]),
-        .library(name: "TokenViewerCore", targets: ["TokenViewerCore"]),
+        .executable(name: "Meterlet", targets: ["Meterlet"]),
+        .library(name: "MeterletCore", targets: ["MeterletCore"]),
     ],
     targets: [
-        .target(name: "TokenViewerCore", resources: [.process("Resources")]),
-        .executableTarget(name: "TokenViewer", dependencies: ["TokenViewerCore"]),
-        .testTarget(name: "TokenViewerCoreTests", dependencies: ["TokenViewerCore"], resources: [.copy("Fixtures")]),
+        .target(name: "MeterletCore", resources: [.process("Resources")]),
+        .executableTarget(name: "Meterlet", dependencies: ["MeterletCore"]),
+        .testTarget(name: "MeterletCoreTests", dependencies: ["MeterletCore"], resources: [.copy("Fixtures")]),
     ]
 )

@@ -1,7 +1,7 @@
 import AppKit
 import ServiceManagement
 import SwiftUI
-import TokenViewerCore
+import MeterletCore
 
 struct SettingsView: View {
     @ObservedObject var store: UsageStore
@@ -49,7 +49,7 @@ struct SettingsView: View {
             HStack {
                 Text(l.format("settings.version", "0.1.0")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Link("GitHub", destination: URL(string: "https://github.com/moguone/token_viewer")!)
+                Link("GitHub", destination: URL(string: "https://github.com/moguone/meterlet")!)
             }
         }
         .formStyle(.grouped)

@@ -6,7 +6,7 @@ public enum AppLanguage: String, CaseIterable, Codable, Sendable {
 
 public struct L10n: Sendable {
     private static let resources: Bundle = {
-        if let url = Bundle.main.resourceURL?.appendingPathComponent("TokenViewer_TokenViewerCore.bundle"),
+        if let url = Bundle.main.resourceURL?.appendingPathComponent("Meterlet_MeterletCore.bundle"),
            let packaged = Bundle(url: url) { return packaged }
         return Bundle.module
     }()

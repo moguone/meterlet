@@ -1,12 +1,12 @@
-# Token Viewer
+# Meterlet
 
-[English](README.md) · [ダウンロード](https://github.com/moguone/token_viewer/releases) · [開発への参加](CONTRIBUTING.md)
+[English](README.md) · [ダウンロード](https://github.com/moguone/meterlet/releases) · [開発への参加](CONTRIBUTING.md)
 
 **Codex と Claude Code の使用率・リセット日時を Mac のメニューバーで確認するアプリ**です。Swift + SwiftUI 製。Apple Silicon、macOS 14 以降に対応しています。
 
 メニューバーは幅 48pt の2行表示です。ノッチのある MacBook でも横幅を抑え、クリックすると各利用枠のバー、モデル別上限、リセット日時・残り時間、最終取得時刻を確認できます。
 
-<img src="docs/images/ja/popover.png" width="360" alt="Codex と Claude Code の使用率、Fable の個別上限を表示する Token Viewer。数値はサンプル">
+<img src="docs/images/ja/popover.png" width="360" alt="Codex と Claude Code の使用率、Fable の個別上限を表示する Meterlet。数値はサンプル">
 
 *画像はサンプルデータです。表示するのはサブスクリプションの利用上限に対する使用率です。生のトークン数や API 課金額ではありません。*
 
@@ -22,13 +22,13 @@
 
 ## インストール
 
-1. [Releases](https://github.com/moguone/token_viewer/releases) から `macOS-arm64.zip` を取得し、展開した **Token Viewer.app** を Applications に移動します。
+1. [Releases](https://github.com/moguone/meterlet/releases) から `macOS-arm64.zip` を取得し、展開した **Meterlet.app** を Applications に移動します。
 2. 公式の [Codex CLI](https://developers.openai.com/codex/cli/) と [Claude Code](https://code.claude.com/docs/en/setup) のうち、利用するものをインストールします。先に Terminal でログインと初期設定を完了してください。利用枠を取得できるサブスクリプションが必要で、API キーの従量課金は対象外です。
-3. Token Viewer を起動し、メニューバーの2行表示をクリックします。使わないサービスは設定で無効にできます。
+3. Meterlet を起動し、メニューバーの2行表示をクリックします。使わないサービスは設定で無効にできます。
 
 一般的な CLI のインストール先を自動検出します。Codex アプリに同梱された CLI も利用できます。検出できない場合は設定で実行ファイルを選択するか、絶対パスを入力して Return を押してください。
 
-**初回プレビュー版はアドホック署名で、Apple Developer ID による公証はされていません。** ダウンロードしたアプリが macOS にブロックされる場合があります。ソースを確認して自分でビルドする方法もあります。信頼するダウンロード済みアプリを開く場合は、Apple の[開発元未確認のアプリを開く手順](https://support.apple.com/ja-jp/102445)を参照してください。Gatekeeper 全体を無効化する必要はありません。
+**Developer ID で署名・公証した初回リリースを準備中です。** CI の成果物と通常のローカルビルドは、開発確認用のアドホック署名です。ダウンロードした開発用ビルドは macOS にブロックされる場合があります。ソースからのビルドも利用できます。配布用アプリは準備後に [Releases](https://github.com/moguone/meterlet/releases) で公開します。
 
 ## データが表示されない場合・制約
 
@@ -41,9 +41,9 @@
 
 ## プライバシーと負荷
 
-認証は公式 CLI が管理します。Token Viewer は認証トークン、API キー、ブラウザ Cookie、会話、過去のトークンログを読み取ったり送信したりしません。取得時の CLI 出力はメモリ内で解析し、アプリのデバッグログには保存しません。
+認証は公式 CLI が管理します。Meterlet は認証トークン、API キー、ブラウザ Cookie、会話、過去のトークンログを読み取ったり送信したりしません。取得時の CLI 出力はメモリ内で解析し、アプリのデバッグログには保存しません。
 
-使用率・利用枠のラベル・リセット日時・取得日時のみを `~/Library/Application Support/Token Viewer/Usage/` に保存します。ファイル権限は所有者のみです。設定は macOS 標準の設定保存領域を使います。公式 CLI 自身による認証情報・ローカルファイル・サービス通信の管理は引き続き行われます。
+使用率・利用枠のラベル・リセット日時・取得日時のみを `~/Library/Application Support/Meterlet/Usage/` に保存します。ファイル権限は所有者のみです。設定は macOS 標準の設定保存領域を使います。公式 CLI 自身による認証情報・ローカルファイル・サービス通信の管理は引き続き行われます。
 
 取得時だけ短時間 CLI を起動します。Codex は app-server の使用量読み取り、Claude は認証状態確認と専用ディレクトリでの `/usage` を使います。Claude は safe-mode などのオプションでツール、フック、MCP、プラグイン、自動更新を無効にします。モデルへのプロンプトや会話ターンは送信しません。取得処理にはタイムアウトがあり、終了・キャンセル時は自身が起動した子プロセスを停止します。取得の合間は次のイベントまでタイマーで待機します。
 
@@ -52,11 +52,11 @@
 Apple Silicon、macOS 14 以降、Xcode 16 以降 / Swift 6 が必要です。外部パッケージや Xcode プロジェクト生成は不要です。
 
 ```sh
-git clone https://github.com/moguone/token_viewer.git
-cd token_viewer
+git clone https://github.com/moguone/meterlet.git
+cd meterlet
 ./scripts/test.sh
 ./scripts/package-app.sh
-open "dist/Token Viewer.app"
+open "dist/Meterlet.app"
 ```
 
 パッケージ作成スクリプトは常に `arm64` でビルドし、アイコン生成・翻訳の同梱・署名の検証・ZIP と SHA-256 ファイルの生成を行います。ビルド成果物は Git の対象外です。
@@ -64,7 +64,7 @@ open "dist/Token Viewer.app"
 サンプルデータだけで画面を確認する場合:
 
 ```sh
-swift run TokenViewer --demo --show-window --language ja
+swift run Meterlet --demo --show-window --language ja
 ```
 
 Developer ID 証明書と notarytool のプロファイルを持っている開発者は、以下のように独自の署名・公証を行えます。
@@ -75,7 +75,7 @@ NOTARY_PROFILE="your-notary-profile" \
 VERSION="0.1.0" ./scripts/package-app.sh
 ```
 
-テスト・翻訳追加・構成は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。CI は push / Pull Request ごとにテストとビルドを行い、バージョンタグからプレビュー版を公開します。
+テスト・翻訳追加・構成は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。CI は push / Pull Request ごとにテストとビルドを行い、バージョンタグからリリースの下書きを作成します。署名・公証の確認後に公開する手順は[配布ガイド](docs/RELEASING.md)を参照してください。
 
 ## 参照・ライセンス
 

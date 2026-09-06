@@ -1,10 +1,10 @@
 import Foundation
 import Darwin
 import Testing
-@testable import TokenViewerCore
+@testable import MeterletCore
 
 private func withExecutable(_ script: String, body: (URL, URL) throws -> Void) throws {
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("token-viewer-test-\(UUID().uuidString)")
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("meterlet-test-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
     let executable = directory.appendingPathComponent("fake-cli")

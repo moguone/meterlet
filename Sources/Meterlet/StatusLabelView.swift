@@ -1,5 +1,5 @@
 import AppKit
-import TokenViewerCore
+import MeterletCore
 
 @MainActor
 final class StatusLabelView: NSView {
