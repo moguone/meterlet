@@ -2,9 +2,20 @@
 
 [English](README.md) · [ダウンロード](https://github.com/moguone/meterlet/releases) · [開発への参加](CONTRIBUTING.md)
 
-**Codex と Claude Code の使用率・リセット日時を Mac のメニューバーで確認するアプリ**です。Swift + SwiftUI 製。Apple Silicon、macOS 14 以降に対応しています。
+**メニューバーを見るだけで、Codex と Claude Code の使用率が分かる。**
 
-メニューバーは幅 48pt の2行表示です。ノッチのある MacBook でも横幅を抑え、クリックすると各利用枠のバー、モデル別上限、リセット日時・残り時間、最終取得時刻を確認できます。
+Meterlet は、作業中も2つのサービスの使用率を表示する小さな Mac アプリです。Swift + SwiftUI 製。Apple Silicon、macOS 14 以降に対応しています。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/menubar-dark.png">
+  <img src="docs/images/menubar-light.png" width="360" alt="Mac のメニューバーに Codex の使用率 28% と Claude Code の使用率 55% を2行で表示する Meterlet">
+</picture>
+
+*上段が Codex、下段が Claude Code。アプリと同じ描画コードで作成したメニューバーの表示例です。数値はサンプルです。*
+
+幅 **48pt** のコンパクトな2行表示で、ノッチのある MacBook でも横幅を抑えます。
+
+**詳しく見たいときはクリック。** 各利用枠のバー、モデル別上限、リセット日時・残り時間、最終取得時刻を確認できます。
 
 <img src="docs/images/ja/popover.png" width="360" alt="Codex と Claude Code の使用率、Fable の個別上限を表示する Meterlet。数値はサンプル">
 
