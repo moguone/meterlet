@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-and-build:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: ./scripts/test.sh
+      - name: Package Apple Silicon app
+        run: ./scripts/package-app.sh
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TokenViewer-macOS-arm64
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          retention-days: 14
