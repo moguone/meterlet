@@ -2,13 +2,24 @@
 
 [日本語](README.ja.md) · [Download](https://github.com/moguone/meterlet/releases) · [Contributing](CONTRIBUTING.md)
 
-A small native macOS menu bar app for **Codex and Claude Code usage limits and reset times**. Built with Swift and SwiftUI, for Apple Silicon on macOS 14 or later.
+**See your Codex and Claude Code usage at a glance in the Mac menu bar.**
 
-Two compact rows fit into a fixed 48-point menu bar item, leaving more room beside the MacBook notch. Click it to see each usage window, model-specific limits, reset time, countdown, and last successful fetch.
+Meterlet keeps both usage percentages visible while you work. A small native Swift + SwiftUI app for Apple Silicon on macOS 14 or later.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/menubar-dark.png">
+  <img src="docs/images/menubar-light.png" width="360" alt="Meterlet in the Mac menu bar: Codex usage at 28% on the top row and Claude Code at 55% below">
+</picture>
+
+*Top: Codex. Bottom: Claude Code. Menu bar example rendered with the app’s actual display code and sample values.*
+
+Two compact rows fit into a fixed **48-point** menu bar item, leaving more room beside the MacBook notch.
+
+**Click for the details:** each usage window, model-specific limits, reset time, countdown, and last successful fetch.
 
 <img src="docs/images/en/popover.png" width="360" alt="Meterlet showing sample Codex and Claude Code usage, including a separate Fable limit">
 
-*Screenshot uses sample data. Percentages mean the share of a subscription usage limit consumed; this is not a raw token counter or an API billing meter.*
+*Images use sample data. Percentages mean the share of a subscription usage limit consumed; this is not a raw token counter or an API billing meter.*
 
 ## What it does
 
