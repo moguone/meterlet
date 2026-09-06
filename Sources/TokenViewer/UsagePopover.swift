@@ -86,7 +86,8 @@ struct UsagePopover: View {
 
     private func providerSection(_ provider: ProviderID, now: Date) -> some View {
         let state = store.state(provider)
-        let stale = state.restored || state.error != nil || state.snapshot?.isStale(at: now, after: store.policy.staleAfter) == true
+        let stale = state.snapshot != nil && (state.restored || state.error != nil
+            || state.snapshot?.isStale(at: now, after: store.policy.staleAfter) == true)
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: provider.symbol).foregroundStyle(provider.color).font(.system(size: 15))
