@@ -1,7 +1,7 @@
 import AppKit
 import Combine
 import SwiftUI
-import TokenViewerCore
+import MeterletCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         let item = NSStatusBar.system.statusItem(withLength: 48)
-        item.autosaveName = "TokenViewer.usage"
+        item.autosaveName = "Meterlet.usage"
         if let button = item.button {
             button.target = self
             button.action = #selector(togglePopover)
@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return "\(provider.title) · \(window): \(value)"
         }.joined(separator: "\n")
         statusItem?.button?.toolTip = tooltip
-        statusItem?.button?.setAccessibilityLabel("Token Viewer. \(tooltip)")
+        statusItem?.button?.setAccessibilityLabel("Meterlet. \(tooltip)")
         statusItem?.button?.setAccessibilityRole(.button)
     }
     @objc private func togglePopover() {
@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if settingsWindow == nil {
             let controller = NSHostingController(rootView: SettingsView(store: store))
             let window = NSWindow(contentViewController: controller)
-            window.title = "Token Viewer"
+            window.title = "Meterlet"
             window.styleMask = [.titled, .closable, .miniaturizable]
             window.isReleasedWhenClosed = false
             window.center()
@@ -120,7 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func showPreviewWindow() {
         store.opened()
         let window = NSWindow(contentViewController: NSHostingController(rootView: makePopover()))
-        window.title = store.demo ? "Token Viewer · Preview" : "Token Viewer"
+        window.title = store.demo ? "Meterlet · Preview" : "Meterlet"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.center()

@@ -1,5 +1,5 @@
 import SwiftUI
-import TokenViewerCore
+import MeterletCore
 
 extension ProviderID {
     var color: Color { self == .codex ? Color(red: 0.08, green: 0.49, blue: 0.53) : Color(red: 0.80, green: 0.39, blue: 0.27) }
@@ -36,7 +36,7 @@ struct UsagePopover: View {
                 if store.demo {
                     Text(l.text("status.demo")).foregroundStyle(.secondary)
                 } else {
-                    Link("GitHub", destination: URL(string: "https://github.com/moguone/token_viewer")!)
+                    Link("GitHub", destination: URL(string: "https://github.com/moguone/meterlet")!)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

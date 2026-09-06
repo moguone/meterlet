@@ -1,6 +1,6 @@
 # Contributing
 
-Bug reports, translations, and small, focused pull requests are welcome. Keep Token Viewer a lightweight, local usage viewer.
+Bug reports, translations, and small, focused pull requests are welcome. Keep Meterlet a lightweight, local usage viewer.
 
 ## Development
 
@@ -8,11 +8,11 @@ Use Apple Silicon, macOS 14+, and Xcode 16+ / Swift 6.
 
 ```sh
 ./scripts/test.sh
-swift run TokenViewer --demo --show-window --language en
+swift run Meterlet --demo --show-window --language en
 ./scripts/package-app.sh
 ```
 
-`TokenViewerCore` contains quota models, CLI adapters, parsers, localization, and a restricted-permission cache. `TokenViewer` contains the SwiftUI views and a small AppKit bridge for the fixed-width status item and popover. Tests include synthetic data and fake subprocesses; they do not authenticate or contact providers.
+`MeterletCore` contains quota models, CLI adapters, parsers, localization, and a restricted-permission cache. `Meterlet` contains the SwiftUI views and a small AppKit bridge for the fixed-width status item and popover. Tests include synthetic data and fake subprocesses; they do not authenticate or contact providers.
 
 When changing an adapter, cover the actual protocol boundary and missing/error data. Do not convert absent data to 0%, infer model quotas, submit model prompts, read credential files, or leave subprocesses running. Never attach auth files or full conversation logs to issues. Report the app version, macOS version, CLI version, error label, and a carefully redacted usage-only example when necessary.
 
@@ -20,7 +20,7 @@ The `--probe codex` and `--probe claude` options perform a real local fetch and 
 
 ## Translations
 
-English and Japanese string catalogs are in `Sources/TokenViewerCore/Resources/{en,ja}.lproj/Localizable.strings`. To add a language:
+English and Japanese string catalogs are in `Sources/MeterletCore/Resources/{en,ja}.lproj/Localizable.strings`. To add a language:
 
 1. Copy the English catalog to a new `<language>.lproj` directory and translate every value, preserving `%@` and `%d` format arguments.
 2. Extend `AppLanguage`, `L10n.identifier`, and the Settings language picker. Retain English as the fallback.
@@ -30,13 +30,13 @@ English and Japanese string catalogs are in `Sources/TokenViewerCore/Resources/{
 Screenshots must use demo data. They can be regenerated from a packaged app:
 
 ```sh
-"dist/Token Viewer.app/Contents/MacOS/TokenViewer" \
+"dist/Meterlet.app/Contents/MacOS/Meterlet" \
   --demo --language en --light --render-preview "$PWD/docs/images/en"
 ```
 
 ## Releases
 
-The `main` workflow runs tests, creates an Apple Silicon app, and uploads a build artifact. A `v*` tag invokes the release workflow and publishes an ad-hoc-signed prerelease ZIP and checksum. Live Claude/Fable validation is still outstanding; preserve that limitation in release notes until verified with an eligible account.
+The `main` workflow runs tests, creates an Apple Silicon app, and uploads a build artifact. A `v*` tag invokes the release workflow and creates a draft release without public app assets. Development build artifacts remain in Actions. A maintainer signs and notarizes the app locally before attaching verified assets and publishing the release; see [RELEASING.md](docs/RELEASING.md). Live Claude/Fable validation is still outstanding; preserve that limitation in release notes until verified with an eligible account.
 
 Do not describe builds as notarized unless the archive has actually passed notarization and stapling. The packaging script supports optional `CODE_SIGN_IDENTITY` and `NOTARY_PROFILE` values for a developer-managed signing environment.
 

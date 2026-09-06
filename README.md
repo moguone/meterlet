@@ -1,12 +1,12 @@
-# Token Viewer
+# Meterlet
 
-[日本語](README.ja.md) · [Download](https://github.com/moguone/token_viewer/releases) · [Contributing](CONTRIBUTING.md)
+[日本語](README.ja.md) · [Download](https://github.com/moguone/meterlet/releases) · [Contributing](CONTRIBUTING.md)
 
 A small native macOS menu bar app for **Codex and Claude Code usage limits and reset times**. Built with Swift and SwiftUI, for Apple Silicon on macOS 14 or later.
 
 Two compact rows fit into a fixed 48-point menu bar item, leaving more room beside the MacBook notch. Click it to see each usage window, model-specific limits, reset time, countdown, and last successful fetch.
 
-<img src="docs/images/en/popover.png" width="360" alt="Token Viewer showing sample Codex and Claude Code usage, including a separate Fable limit">
+<img src="docs/images/en/popover.png" width="360" alt="Meterlet showing sample Codex and Claude Code usage, including a separate Fable limit">
 
 *Screenshot uses sample data. Percentages mean the share of a subscription usage limit consumed; this is not a raw token counter or an API billing meter.*
 
@@ -22,13 +22,13 @@ Two compact rows fit into a fixed 48-point menu bar item, leaving more room besi
 
 ## Install and set up
 
-1. Download the `macOS-arm64.zip` from [Releases](https://github.com/moguone/token_viewer/releases), unzip it, and move **Token Viewer.app** to Applications.
+1. Download the `macOS-arm64.zip` from [Releases](https://github.com/moguone/meterlet/releases), unzip it, and move **Meterlet.app** to Applications.
 2. Install and sign in to the official [Codex CLI](https://developers.openai.com/codex/cli/) and/or [Claude Code](https://code.claude.com/docs/en/setup). Complete their initial setup in Terminal first. A supported subscription and available quota information are required; API-key billing is not supported.
-3. Open Token Viewer and click its two-line menu item. Turn off any provider you do not use in Settings.
+3. Open Meterlet and click its two-line menu item. Turn off any provider you do not use in Settings.
 
 Common CLI installation locations are detected automatically. The Codex app's bundled CLI is also supported. If detection fails, choose the executable in Settings, or enter its absolute path and press Return.
 
-**The initial preview is ad-hoc signed, without Apple Developer ID notarization.** macOS may block a downloaded copy. Review and build the source if preferred. For a downloaded app you trust, follow Apple's [instructions for opening software from an unidentified developer](https://support.apple.com/en-us/102445). Do not turn off Gatekeeper globally.
+**The first Developer ID-signed and notarized release is being prepared.** CI artifacts and default local builds are ad-hoc-signed development builds. macOS may block downloaded development builds; you can build the source locally. Official release downloads will appear in [Releases](https://github.com/moguone/meterlet/releases).
 
 ## Missing data and limitations
 
@@ -41,9 +41,9 @@ Common CLI installation locations are detected automatically. The Codex app's bu
 
 ## Privacy and resource use
 
-Authentication stays in the official CLIs. Token Viewer does not read or export auth tokens, API keys, browser cookies, conversations, or historical token logs. CLI output is parsed in memory and is not written to debug logs by the app.
+Authentication stays in the official CLIs. Meterlet does not read or export auth tokens, API keys, browser cookies, conversations, or historical token logs. CLI output is parsed in memory and is not written to debug logs by the app.
 
-Only normalized percentages, window labels, reset times, and fetch timestamps are cached in `~/Library/Application Support/Token Viewer/Usage/`, with owner-only file permissions. Preferences are stored in the app's standard macOS defaults. The official CLIs continue to manage their own authentication, local files, and service connections.
+Only normalized percentages, window labels, reset times, and fetch timestamps are cached in `~/Library/Application Support/Meterlet/Usage/`, with owner-only file permissions. Preferences are stored in the app's standard macOS defaults. The official CLIs continue to manage their own authentication, local files, and service connections.
 
 During a check, Codex receives an app-server usage read; Claude receives an auth-status check and `/usage` in a private probe directory, with tools, hooks, MCP, plugins, and auto-updating disabled by its safe-mode options. No model prompt or chat turn is submitted. Each probe has a timeout, and its own subprocesses are stopped after completion or cancellation. Between checks, a one-shot timer waits for the next scheduled event.
 
@@ -52,11 +52,11 @@ During a check, Codex receives an app-server usage read; Claude receives an auth
 Requires Apple Silicon, macOS 14+, and Xcode 16+ / Swift 6. No package dependencies or Xcode project generation are needed.
 
 ```sh
-git clone https://github.com/moguone/token_viewer.git
-cd token_viewer
+git clone https://github.com/moguone/meterlet.git
+cd meterlet
 ./scripts/test.sh
 ./scripts/package-app.sh
-open "dist/Token Viewer.app"
+open "dist/Meterlet.app"
 ```
 
 The packaging script always builds `arm64`, generates the app icon, bundles translations, verifies its code signature, and creates a ZIP plus a SHA-256 file. Build outputs are ignored by Git.
@@ -64,7 +64,7 @@ The packaging script always builds `arm64`, generates the app icon, bundles tran
 For a development preview using sample data only:
 
 ```sh
-swift run TokenViewer --demo --show-window --language en
+swift run Meterlet --demo --show-window --language en
 ```
 
 Developers with an Apple Developer ID certificate and configured notarytool profile can sign and notarize their own distribution:
@@ -75,7 +75,7 @@ NOTARY_PROFILE="your-notary-profile" \
 VERSION="0.1.0" ./scripts/package-app.sh
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, translations, and the project layout. CI builds and tests every push and pull request; version tags publish preview releases.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, translations, and the project layout. CI builds and tests every push and pull request; version tags prepare draft releases. Signed distribution is verified before publication; see [the release guide](docs/RELEASING.md).
 
 ## References and license
 

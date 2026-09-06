@@ -1,4 +1,4 @@
-"app.title" = "Token Viewer";
+"app.title" = "Meterlet";
 "usage.title" = "使用状況";
 "window.fiveHour" = "5時間の使用率";
 "window.weekly" = "週間の使用率";
@@ -20,7 +20,7 @@
 "status.fableMissing" = "このアカウントの Fable 上限は Claude Code から取得できていません。";
 "action.refresh" = "今すぐ更新";
 "action.settings" = "設定";
-"action.quit" = "Token Viewer を終了";
+"action.quit" = "Meterlet を終了";
 "action.usagePage" = "使用状況ページを開く";
 "action.openCLI" = "ターミナルで設定する";
 "action.done" = "完了";
@@ -46,7 +46,7 @@
 "settings.path" = "%@ の実行ファイル";
 "settings.autoPath" = "自動検出";
 "settings.launch" = "ログイン時に起動";
-"settings.launchError" = "システム設定 → 一般 → ログイン項目で Token Viewer を許可してください。";
+"settings.launchError" = "システム設定 → 一般 → ログイン項目で Meterlet を許可してください。";
 "settings.privacy" = "認証は公式 CLI が管理します。この Mac に保存するのは使用率とリセット時刻のみです。解析用の通信やアプリ専用サーバーはありません。";
 "settings.energy" = "取得後は CLI を終了します。スリープ中は取得を停止し、低電力モードやエラー発生時は更新間隔を延ばします。";
 "settings.fable" = "Fable などのモデル別上限は、公式 CLI が返す場合に表示します。全体の使用率からは推測しません。";

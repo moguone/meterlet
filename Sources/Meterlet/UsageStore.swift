@@ -1,6 +1,6 @@
 import AppKit
 import Combine
-import TokenViewerCore
+import MeterletCore
 
 struct ProviderState {
     var snapshot: UsageSnapshot?
@@ -45,7 +45,7 @@ final class UsageStore: ObservableObject {
         claudeEnabled = UserDefaults.standard.object(forKey: "enabled.claude") as? Bool ?? true
         paths = UserDefaults.standard.dictionary(forKey: "cliPaths") as? [String: String] ?? [:]
         supportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Token Viewer", isDirectory: true)
+            .appendingPathComponent("Meterlet", isDirectory: true)
         cache = SnapshotCache(directory: supportDirectory.appendingPathComponent("Usage"))
         for provider in ProviderID.allCases {
             let saved = demo ? nil : cache.load(provider)
