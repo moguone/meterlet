@@ -4,6 +4,19 @@ public struct UsageClient: Sendable {
     public let directory: URL
     public init(directory: URL) { self.directory = directory }
 
+    /// Try another installation only when authentication failed. Do not hide other errors.
+    public func fetch(_ provider: ProviderID, executables: [URL], cancellation: ProbeCancellation) throws -> UsageSnapshot {
+        for (index, executable) in executables.enumerated() {
+            try cancellation.check()
+            do {
+                return try fetch(provider, executable: executable, cancellation: cancellation)
+            } catch let error as UsageError {
+                guard error == .signInRequired(provider), index + 1 < executables.count else { throw error }
+            }
+        }
+        throw UsageError.cliNotFound(provider)
+    }
+
     public func fetch(_ provider: ProviderID, executable: URL, cancellation: ProbeCancellation) throws -> UsageSnapshot {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
                                                attributes: [.posixPermissions: 0o700])
@@ -18,7 +31,7 @@ public struct UsageClient: Sendable {
                                  environment: CLIResolver.environment(), cancellation: cancellation)
         defer { cli.stop() }
         try cli.sendJSON(["id": 1, "method": "initialize", "params": [
-            "clientInfo": ["name": "meterlet", "title": "Meterlet", "version": "0.1.0"],
+            "clientInfo": ["name": "meterlet", "title": "Meterlet", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"],
         ]])
         var buffer = Data()
         _ = try response(id: 1, cli: cli, buffer: &buffer)
@@ -39,10 +52,12 @@ public struct UsageClient: Sendable {
                 if let error = object["error"] as? [String: Any] {
                     // Never display raw CLI errors: they can contain account identifiers or local paths.
                     let message = (error["message"] as? String ?? "").lowercased()
-                    if message.contains("auth") || message.contains("log in") || message.contains("login") || message.contains("401") {
+                    if (error["code"] as? Int) == 401 || UsageError.isAuthenticationFailure(message) {
                         throw UsageError.signInRequired(.codex)
                     }
-                    if message.contains("429") || message.contains("too many") { throw UsageError.rateLimited(.codex) }
+                    if (error["code"] as? Int) == 429 || UsageError.isRateLimitFailure(message) {
+                        throw UsageError.rateLimited(.codex)
+                    }
                     throw UsageError.unavailable(.codex)
                 }
                 guard let result = object["result"], JSONSerialization.isValidJSONObject(result) else {

@@ -11,6 +11,18 @@ enum MeterletMain {
             probe(provider)
             return
         }
+        if !args.contains("--render-preview"), let bundleID = Bundle.main.bundleIdentifier {
+            let current = NSRunningApplication.current
+            let first = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).min { left, right in
+                let lhs = left.launchDate ?? .distantPast
+                let rhs = right.launchDate ?? .distantPast
+                return lhs == rhs ? left.processIdentifier < right.processIdentifier : lhs < rhs
+            }
+            if let first, first.processIdentifier != current.processIdentifier {
+                first.activate(options: [])
+                return
+            }
+        }
         let language: AppLanguage? = args.firstIndex(of: "--language").flatMap { index in
             args.indices.contains(index + 1) ? AppLanguage(rawValue: args[index + 1]) : nil
         }
@@ -28,10 +40,10 @@ enum MeterletMain {
     private static func probe(_ provider: ProviderID) {
         let cancellation = ProbeCancellation()
         do {
-            guard let executable = CLIResolver.resolve(provider) else { throw UsageError.cliNotFound(provider) }
+            let executables = CLIResolver.candidates(provider)
             let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                 .appendingPathComponent("Meterlet/Probes/\(provider.rawValue)")
-            let snapshot = try UsageClient(directory: root).fetch(provider, executable: executable, cancellation: cancellation)
+            let snapshot = try UsageClient(directory: root).fetch(provider, executables: executables, cancellation: cancellation)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601

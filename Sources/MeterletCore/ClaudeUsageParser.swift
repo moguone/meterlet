@@ -60,9 +60,9 @@ public enum ClaudeUsageParser {
         let lower = text.lowercased()
         if lower.contains("unknown option") || lower.contains("unrecognized option") { return .unsupportedCLI(.claude) }
         if lower.contains("choose the text style") || lower.contains("let's get started") { return .setupRequired(.claude) }
-        if lower.contains("not logged in") || lower.contains("please log in") || lower.contains("login method")
-            || lower.contains("select login") || lower.contains("token has expired") { return .signInRequired(.claude) }
-        if lower.contains("429") || lower.contains("too many requests") { return .rateLimited(.claude) }
+        if UsageError.isAuthenticationFailure(lower) || lower.contains("login method")
+            || lower.contains("select login") { return .signInRequired(.claude) }
+        if UsageError.isRateLimitFailure(lower) { return .rateLimited(.claude) }
         if lower.contains("failed to load") || lower.contains("error fetching") { return .unavailable(.claude) }
         return .noUsage(.claude)
     }

@@ -18,17 +18,33 @@
 - 英語・日本語に対応。表示言語を選択でき、日時と残り時間も各言語に合わせて表示します。
 - 初期設定は5分ごとに更新。1・5・10・15分から選べ、スリープ中は停止、低電力モードやエラー時は間隔を延ばします。
 - ログイン時の自動起動は任意。取得後は CLI を終了します。
-- アプリ専用サーバー、アクセス解析、外部ライブラリは使いません。
+- アプリ専用サーバー、アクセス解析は使いません。アプリ更新には [Sparkle](https://sparkle-project.org/) を使います。
 
 ## インストール
 
 1. [Releases](https://github.com/moguone/meterlet/releases) から `macOS-arm64.zip` を取得し、展開した **Meterlet.app** を Applications に移動します。
-2. 公式の [Codex CLI](https://developers.openai.com/codex/cli/) と [Claude Code](https://code.claude.com/docs/en/setup) のうち、利用するものをインストールします。先に Terminal でログインと初期設定を完了してください。利用枠を取得できるサブスクリプションが必要で、API キーの従量課金は対象外です。
+2. 下記の説明に沿って、利用するサービスを設定します。デスクトップ版の実行プログラム、または別途インストールした公式 CLI を利用できます。利用枠を取得できるサブスクリプションが必要で、API キーの従量課金は対象外です。
 3. Meterlet を起動し、メニューバーの2行表示をクリックします。使わないサービスは設定で無効にできます。
 
-一般的な CLI のインストール先を自動検出します。Codex アプリに同梱された CLI も利用できます。検出できない場合は設定で実行ファイルを選択するか、絶対パスを入力して Return を押してください。
+**Codex:** ChatGPT / Codex デスクトップアプリ内の CLI を利用でき、CLI の追加インストールは不要です。macOS に登録されていれば、アプリ名や配置を変更した場合も検出します。認証が必要な場合は「ターミナルでセットアップ」から公式プログラムのログインを行います。
+
+**Claude:** デスクトップ版が Code 機能の実行プログラムをダウンロード済みであれば、CLI の追加インストールは不要です。まず Claude の **Code** 機能の初期設定を完了してください。デスクトップ版にログイン済みでも、単独で起動した実行プログラムには別途認証が必要な場合があります。表示された場合は「ターミナルでセットアップ」で Claude Code のログインと初期設定を行います。Meterlet がデスクトップ版の認証情報を取り出すことはありません。Code の実行プログラムがないチャット専用のインストールでは取得できません。[Claude Code CLI](https://code.claude.com/docs/en/setup) の別途インストールも利用できます。
+
+手動指定した実行ファイルは固定して使います。自動検出では CLI を先に試し、見つからない場合、または認証エラーの場合にデスクトップ版の実行プログラムを試します。通信障害・レート制限・初期設定不足・表示形式の不一致では切り替えません。両方とも認証できなければ、両方を試した後でログイン案内を表示します。デスクトップ版の実行プログラムが利用できる認証を使い、デスクトップアプリから認証情報を取り出して渡すことはしません。Claude の同梱プログラムは取得のたびに利用可能な最新バージョンを探し、VM 用のプログラムは使用しません。自動検出できない場合は設定で実行ファイルを選択するか、絶対パスを入力して Return で確定してください。同梱プログラムの配置は公式アプリの内部仕様であり、今後の変更に追従が必要な場合があります。
 
 **配布用アプリは Developer ID の署名・Apple の公証を確認してから公開します。** CI の成果物と通常のローカルビルドは、開発確認用のアドホック署名です。ダウンロードした開発用ビルドは macOS にブロックされる場合があります。ソースからのビルドも利用できます。配布用アプリは [Releases](https://github.com/moguone/meterlet/releases) から取得できます。
+
+メニューバー項目を右クリックすると、使用状況・設定・更新の確認・終了を選べます。Meterlet がアクティブな間は **⌘1** で使用状況の開閉、**⌘,** で設定、**⌘Q** で終了できます。更新時は旧バージョンを終了してからアプリを置き換えてください。別フォルダのコピーを開いても、常駐するのは1つだけです。
+
+## アプリの更新
+
+メニューバーの右クリック、または設定から **「更新を確認…」** を選びます。**「アップデートを自動で確認」** を有効にすると1日ごとに確認します（初期状態は無効）。ダウンロード・インストールは更新内容を確認してから実行し、無断での自動インストールは行いません。
+
+GitHub の最新の通常リリースに添付した、署名付き `appcast.xml` を参照します。下書きとプレリリースは対象外です。Sparkle が更新情報と配布ファイルの署名を検証した後、アプリを置き換えて再起動します。ダウンロードの中断や署名検証の失敗では、現在のアプリを維持します。
+
+この機能が入る最初のバージョンだけは手動での入れ替えが必要です。アプリ内更新を使う前に Meterlet を Applications に移動してください。開発時は `OUTPUT_DIR=.build/candidate ./scripts/package-app.sh` で別フォルダへビルドできます。実行中のアプリへの上書きはスクリプトで防ぎます。
+
+更新確認では、更新情報と配布ファイルを取得するため GitHub に通信します。使用率や CLI の認証情報は送信しません。Sparkle のシステム情報収集は無効です。
 
 ## データが表示されない場合・制約
 
@@ -49,7 +65,7 @@
 
 ## ソースからビルド
 
-Apple Silicon、macOS 14 以降、Xcode 16 以降 / Swift 6 が必要です。外部パッケージや Xcode プロジェクト生成は不要です。
+Apple Silicon、macOS 14 以降、Xcode 16 以降 / Swift 6 が必要です。Sparkle は Swift Package Manager が取得します。Xcode プロジェクトの生成は不要です。
 
 ```sh
 git clone https://github.com/moguone/meterlet.git
@@ -72,7 +88,7 @@ Developer ID 証明書と notarytool のプロファイルを持っている開�
 ```sh
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 NOTARY_PROFILE="your-notary-profile" \
-VERSION="0.1.0" ./scripts/package-app.sh
+VERSION="0.2.0" ./scripts/package-app.sh
 ```
 
 テスト・翻訳追加・構成は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。CI は push / Pull Request ごとにテストとビルドを行い、バージョンタグからリリースの下書きを作成します。署名・公証の確認後に公開する手順は[配布ガイド](docs/RELEASING.md)を参照してください。
@@ -82,3 +98,5 @@ VERSION="0.1.0" ./scripts/package-app.sh
 OpenAI の [app-server 使用量 API](https://learn.chatgpt.com/docs/app-server)、Anthropic の [`/usage` コマンド](https://code.claude.com/docs/en/commands)と[ステータスライン仕様](https://code.claude.com/docs/en/statusline)を利用しています。モデル別枠と全体枠の関係は [Fable のプラン別上限](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan)を参照してください。
 
 [MIT License](LICENSE)。ソースコードと幾何学図形のアプリアイコンは本プロジェクトで作成しています。
+
+Sparkle と同梱コンポーネントのライセンスは [サードパーティーの権利表記](THIRD_PARTY_NOTICES.md) に記載しています。

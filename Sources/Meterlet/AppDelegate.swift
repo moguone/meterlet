@@ -4,18 +4,21 @@ import SwiftUI
 import MeterletCore
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSMenuItemValidation {
     let store: UsageStore
+    private let updater: AppUpdater
     private var statusItem: NSStatusItem?
     private let label = StatusLabelView()
     private let popover = NSPopover()
     private var settingsWindow: NSWindow?
     private var previewWindow: NSWindow?
+    private var menuLanguage: AppLanguage?
     private var subscriptions = Set<AnyCancellable>()
     private let renderDirectory: URL?
 
     init(demo: Bool, language: AppLanguage?, renderDirectory: URL? = nil) {
         store = UsageStore(demo: demo, language: language)
+        updater = AppUpdater(enabled: !demo && renderDirectory == nil)
         self.renderDirectory = renderDirectory
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -24,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         item.autosaveName = "Meterlet.usage"
         if let button = item.button {
             button.target = self
-            button.action = #selector(togglePopover)
+            button.action = #selector(statusItemClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             label.translatesAutoresizingMaskIntoConstraints = false
             button.addSubview(label)
             NSLayoutConstraint.activate([
@@ -38,27 +42,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.behavior = .transient
         popover.animates = false
         popover.delegate = self
-        popover.contentViewController = NSHostingController(rootView: makePopover())
         store.objectWillChange.sink { [weak self] _ in
             // ObservableObject emits before the mutation. Draw after the new values are committed.
             DispatchQueue.main.async { self?.updateStatus() }
         }.store(in: &subscriptions)
         updateStatus()
         store.start()
+        updater.willPresentUpdate = { [weak self] in self?.popover.performClose(nil) }
+        updater.start()
         if CommandLine.arguments.contains("--show-window") || renderDirectory != nil {
             showPreviewWindow()
             if renderDirectory != nil {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.renderPreview() }
             }
         }
-        else if CommandLine.arguments.contains("--show") { togglePopover() }
+        else if CommandLine.arguments.contains("--show") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.togglePopover() }
+        }
     }
 
-    private func makePopover() -> UsagePopover {
-        UsagePopover(store: store, settings: { [weak self] in self?.showSettings() },
+    private func makePopover(height: CGFloat? = nil) -> UsagePopover {
+        UsagePopover(store: store, height: height ?? UsagePopover.preferredHeight(for: store), settings: { [weak self] in self?.showSettings() },
                      setup: { [weak self] provider in self?.setup(provider) }, quit: { NSApp.terminate(nil) })
     }
     private func updateStatus() {
+        if menuLanguage != store.language { installApplicationMenu() }
         let now = Date()
         label.rows = store.providers.map { provider in
             let state = store.state(provider)
@@ -74,21 +82,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem?.button?.setAccessibilityLabel("Meterlet. \(tooltip)")
         statusItem?.button?.setAccessibilityRole(.button)
     }
+    @objc private func statusItemClicked() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+        } else { togglePopover() }
+    }
+
     @objc private func togglePopover() {
         if popover.isShown { popover.performClose(nil); return }
         guard let button = statusItem?.button else { return }
+        let screen = button.window?.screen ?? NSScreen.main
+        let height = min(UsagePopover.preferredHeight(for: store), max(180, (screen?.visibleFrame.height ?? 800) - 24))
+        // Establish a bounded size before AppKit positions the popover. A flexible hosting
+        // view can otherwise grow after presentation and push the header outside the screen.
+        let controller = NSHostingController(rootView: makePopover(height: height))
+        controller.sizingOptions = []
+        controller.view.setFrameSize(NSSize(width: 360, height: height))
+        popover.contentViewController = controller
+        popover.contentSize = NSSize(width: 360, height: height)
         store.opened()
         NSApp.activate(ignoringOtherApps: true)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        // NSStatusBarButton uses flipped coordinates: maxY is its lower edge.
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: button.isFlipped ? .maxY : .minY)
         popover.contentViewController?.view.window?.makeKey()
+        if !popover.isShown { store.closed() }
     }
+
+    private func showContextMenu() {
+        popover.performClose(nil)
+        guard let button = statusItem?.button else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        let menu = NSMenu()
+        menu.addItem(withTitle: store.l10n.text("usage.title"), action: #selector(togglePopover), keyEquivalent: "").target = self
+        menu.addItem(withTitle: store.l10n.text("action.settings"), action: #selector(showSettings), keyEquivalent: ",").target = self
+        menu.addItem(withTitle: store.l10n.text("action.checkUpdates"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        menu.addItem(.separator())
+        menu.addItem(withTitle: store.l10n.text("action.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q").target = NSApp
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY), in: button)
+    }
+
+    private func installApplicationMenu() {
+        let menu = NSMenu()
+        let applicationItem = NSMenuItem()
+        let applicationMenu = NSMenu()
+        applicationMenu.addItem(withTitle: store.l10n.text("usage.title"), action: #selector(togglePopover), keyEquivalent: "1").target = self
+        applicationMenu.addItem(withTitle: store.l10n.text("action.settings"), action: #selector(showSettings), keyEquivalent: ",").target = self
+        applicationMenu.addItem(withTitle: store.l10n.text("action.checkUpdates"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        applicationMenu.addItem(.separator())
+        applicationMenu.addItem(withTitle: store.l10n.text("action.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q").target = NSApp
+        applicationItem.submenu = applicationMenu
+        menu.addItem(applicationItem)
+        NSApp.mainMenu = menu
+        menuLanguage = store.language
+    }
+    @objc private func checkForUpdates() { updater.checkForUpdates() }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action == #selector(checkForUpdates) ? updater.canCheckForUpdates : true
+    }
+
     func popoverDidClose(_ notification: Notification) { store.closed() }
     func applicationWillTerminate(_ notification: Notification) { store.stop() }
 
-    private func showSettings() {
+    @objc private func showSettings() {
         popover.performClose(nil)
         if settingsWindow == nil {
-            let controller = NSHostingController(rootView: SettingsView(store: store))
+            let controller = NSHostingController(rootView: SettingsView(store: store, updater: updater))
             let window = NSWindow(contentViewController: controller)
             window.title = "Meterlet"
             window.styleMask = [.titled, .closable, .miniaturizable]

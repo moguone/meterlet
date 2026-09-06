@@ -20,6 +20,7 @@
 "status.fableMissing" = "Fable limit is not reported by Claude Code for this account.";
 "action.refresh" = "Refresh now";
 "action.settings" = "Settings";
+"action.quitShort" = "Quit";
 "action.quit" = "Quit Meterlet";
 "action.usagePage" = "Open usage page";
 "action.openCLI" = "Set up in Terminal";
@@ -52,3 +53,12 @@
 "settings.fable" = "Fable and other model-specific limits appear when the official CLI reports them. They are never estimated from total usage.";
 "settings.menu" = "The two-line menu bar shows each provider’s primary window. Hover to see which window.";
 "settings.version" = "Version %@";
+"action.checkUpdates" = "Check for Updates…";
+"settings.updates" = "App updates";
+"settings.autoUpdates" = "Check for updates automatically";
+"settings.updateExplanation" = "Check GitHub once a day. Review each update before downloading and installing it.";
+"settings.updateUnavailable" = "App updates are available in the packaged app.";
+"settings.lastUpdateCheck" = "Last checked %@";
+"error.codexNotFound" = "Codex was not found. Install the ChatGPT/Codex desktop app or Codex CLI, or choose its location in Settings.";
+"error.claudeNotFound" = "Claude Code was not found. Set up the Code feature in Claude desktop, or install Claude Code CLI.";
+"error.claudeSignIn" = "Sign in to Claude Code using Set up in Terminal. Its sign-in may be separate from the Claude desktop app; no separate CLI install is needed when a desktop runtime is detected.";
