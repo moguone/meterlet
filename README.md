@@ -28,7 +28,7 @@ Two compact rows fit into a fixed 48-point menu bar item, leaving more room besi
 
 Common CLI installation locations are detected automatically. The Codex app's bundled CLI is also supported. If detection fails, choose the executable in Settings, or enter its absolute path and press Return.
 
-**The first Developer ID-signed and notarized release is being prepared.** CI artifacts and default local builds are ad-hoc-signed development builds. macOS may block downloaded development builds; you can build the source locally. Official release downloads will appear in [Releases](https://github.com/moguone/meterlet/releases).
+**Official downloads are published after Developer ID signing and Apple notarization.** CI artifacts and default local builds are ad-hoc-signed development builds. macOS may block downloaded development builds; you can build the source locally. Get verified distribution builds from [Releases](https://github.com/moguone/meterlet/releases).
 
 ## Missing data and limitations
 

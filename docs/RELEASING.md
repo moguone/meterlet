@@ -9,10 +9,11 @@ An Apple Developer Program membership and the appropriate certificate permission
 For command-line notarization, store credentials in Keychain using an interactive Terminal session:
 
 ```sh
-xcrun notarytool store-credentials "meterlet-notary"
+xcrun notarytool store-credentials "meterlet-notary" \
+  --apple-id "you@example.com" --team-id "YOUR_TEAM_ID"
 ```
 
-Follow the prompts using your Apple Account, team ID, and app-specific password. Keep these credentials in Keychain; do not paste passwords into issues, chats, or the repository. If an existing suitable Keychain profile is available, use that profile instead.
+Replace the example Apple Account and team ID with your own. The secure prompt asks only for your app-specific password; the characters are not echoed. Keep these credentials in Keychain; do not paste passwords into issues, chats, or the repository. If an existing suitable Keychain profile is available, use that profile instead.
 
 ## Build and verify
 
