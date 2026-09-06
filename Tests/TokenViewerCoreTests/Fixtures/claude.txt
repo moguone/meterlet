@@ -1,0 +1,17 @@
+Current session
+██████░░░░░░░░░░░░░░ 55% used
+Resets 4:30pm (Asia/Tokyo)
+
+Current week (all models)
+████░░░░░░░░░░░░░░░░ 32% used
+Resets Sep 11 at 2:20pm (Asia/Tokyo)
+
+Current week (Fable)
+██████████████░░░░░░ 68% used
+Resets Sep 11 at 2:20pm (Asia/Tokyo)
+
+Current week (Sonnet only)
+████░░░░░░░░░░░░░░░░ 80% left
+Resets Sep 11 at 2:20pm (Asia/Tokyo)
+
+Usage credits are off
