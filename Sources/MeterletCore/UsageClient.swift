@@ -79,20 +79,26 @@ public struct UsageClient: Sendable {
         env["TERM"] = "xterm-256color"
         env["NO_COLOR"] = "1"
         env["DISABLE_AUTOUPDATER"] = "1"
-        env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
+        env["DISABLE_TELEMETRY"] = "1"
+        env["DISABLE_ERROR_REPORTING"] = "1"
+        env["DISABLE_BUG_COMMAND"] = "1"
+        // Essential-traffic mode also blocks the usage API, including when inherited from a shell.
+        env.removeValue(forKey: "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
         env.removeValue(forKey: "CLAUDECODE")
         // This viewer targets CLI subscription auth, not API-key billing inherited from a launching shell.
         for key in Array(env.keys) where key.hasPrefix("ANTHROPIC_") || key == "CLAUDE_CODE_OAUTH_TOKEN" {
             env.removeValue(forKey: key)
         }
         try checkClaudeAuth(executable, environment: env, cancellation: cancellation)
+        // --settings triggers onboarding; safe mode already disables hooks/MCP.
+        // Allow deep-link registration rather than overriding settings.
         let cli = try CLIProcess(executable: executable, arguments: [
             "--safe-mode", "--tools", "", "--strict-mcp-config", "--no-chrome", "--ax-screen-reader",
-            "--settings", "{\"disableDeepLinkRegistration\":\"disable\",\"disableAllHooks\":true}",
         ], directory: directory, environment: env, pty: true, cancellation: cancellation)
         defer { cli.stop() }
         let started = Date()
-        var data = Data(), lastChange = Date(), sentAt: Date?, confirmedPalette = false, trusted = false
+        var data = Data(), lastChange = Date(), sentAt: Date?, confirmedPalette = false
+        var trustResponses = 0, usageAttempts = 0
         var lastSnapshot: UsageSnapshot?
         while Date().timeIntervalSince(started) < 25 {
             if let chunk = try cli.read() {
@@ -102,19 +108,29 @@ public struct UsageClient: Sendable {
                 guard data.count < 1_048_576 else { throw UsageError.invalidResponse(.claude) }
             }
             let text = ClaudeUsageParser.cleanTerminal(String(decoding: data, as: UTF8.self))
+            let lower = text.lowercased()
             let failure = ClaudeUsageParser.classifyFailure(text)
             if [.setupRequired(.claude), .signInRequired(.claude), .unsupportedCLI(.claude), .rateLimited(.claude)].contains(failure) {
                 throw failure
             }
-            if !trusted && text.contains("Yes, I trust this folder") {
+            if trustResponses < 3 && (text.contains("Yes, I trust this folder") || text.contains("Enter y/n")
+                || text.contains("Please answer y or n")) {
                 // Only our own empty probe folder is accepted, with hooks/MCP/tools disabled.
-                try cli.send(Data("\r".utf8))
-                trusted = true
+                try cli.send(Data("y\r".utf8))
+                trustResponses += 1
+                // A late trust prompt can consume /usage; retry it only once after accepting.
+                sentAt = nil
+                confirmedPalette = false
+                lastSnapshot = nil
                 data.removeAll(keepingCapacity: true)
+                lastChange = Date()
                 continue
             }
-            if sentAt == nil && Date().timeIntervalSince(started) >= 2 && !text.lowercased().contains("trust") {
+            if sentAt == nil && usageAttempts < 2, Date().timeIntervalSince(started) >= 2,
+               Date().timeIntervalSince(lastChange) >= 0.8,
+               !lower.contains("trust"), !lower.contains("y/n"), !lower.contains("please answer y or n") {
                 try cli.send(Data("/usage\r".utf8))
+                usageAttempts += 1
                 sentAt = Date()
                 data.removeAll(keepingCapacity: true)
                 continue
