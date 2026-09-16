@@ -83,6 +83,203 @@ private func withExecutable(_ script: String, body: (URL, URL) throws -> Void) t
     }
 }
 
+@Test(arguments: [
+    "Quick safety check: Is this a project you created or one you trust?\n❯ No, exit\n  Yes, I trust this folder\nEnter y/n:\nEnter to confirm · Esc to cancel",
+    "Enter y/n:",
+])
+func claudeClientAnswersTrustPrompt(prompt: String) throws {
+    try withExecutable("""
+    #!/bin/sh
+    if [ "$1" = "auth" ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    cat prompt.txt
+    while IFS= read -r command; do
+      printf '%s\\n' "$command" >> commands
+      [ "$command" = y ] && break
+      printf '%s\\n' 'Please answer y or n.' 'Enter y/n:'
+    done
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = /usage ] || exit 8
+    cat usage.txt
+    IFS= read -r unused
+    """) { executable, directory in
+        try prompt.write(to: directory.appendingPathComponent("prompt.txt"), atomically: true, encoding: .utf8)
+        let fixture = try #require(Bundle.module.url(forResource: "claude", withExtension: "txt", subdirectory: "Fixtures"))
+        try FileManager.default.copyItem(at: fixture, to: directory.appendingPathComponent("usage.txt"))
+        let snapshot = try UsageClient(directory: directory).fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+        #expect(snapshot.primary?.usedPercent == 55)
+        #expect(snapshot.windows.first { $0.isFable }?.usedPercent == 68)
+        #expect(try String(contentsOf: directory.appendingPathComponent("commands"), encoding: .utf8) == "y\n/usage\n")
+    }
+}
+
+@Test(arguments: [false, true])
+func claudeClientBoundsTrustRetries(keepsRejecting: Bool) throws {
+    try withExecutable("""
+    #!/bin/sh
+    if [ "$1" = "auth" ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    printf '%s\\n' 'Yes, I trust this folder'
+    for attempt in 1 2 3; do
+      IFS= read -r command
+      printf '%s\\n' "$command" >> commands
+      [ "$command" = y ] || exit 8
+      if [ "$attempt" -lt 3 ] || [ "\(keepsRejecting)" = true ]; then
+        printf '%s\\n' 'Please answer y or n.'
+      fi
+    done
+    if [ "\(keepsRejecting)" = true ]; then
+      if IFS= read -r -t 2 command; then
+        printf '%s\\n' "$command" >> commands
+      fi
+      exit 0
+    fi
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = /usage ] || exit 8
+    printf '%s\\n' 'Current session' '55% used' 'Resets 4:30pm (Asia/Tokyo)'
+    IFS= read -r unused
+    """) { executable, directory in
+        let client = UsageClient(directory: directory)
+        if keepsRejecting {
+            #expect(throws: UsageError.timedOut(.claude)) {
+                try client.fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+            }
+        } else {
+            let snapshot = try client.fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+            #expect(snapshot.primary?.usedPercent == 55)
+        }
+        let commands = try String(contentsOf: directory.appendingPathComponent("commands"), encoding: .utf8)
+        #expect(commands == (keepsRejecting ? "y\ny\ny\n" : "y\ny\ny\n/usage\n"))
+    }
+}
+
+@Test func claudeClientWaitsForStartupOutputToSettle() throws {
+    try withExecutable("""
+    #!/bin/sh
+    if [ "$1" = "auth" ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    for step in 1 2 3 4 5 6 7 8; do
+      printf '%s\\n' 'Starting Claude Code...'
+      sleep 0.4
+    done
+    printf '%s\\n' 'Yes, I trust this folder' 'Enter y/n:'
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = y ] || exit 8
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = /usage ] || exit 8
+    printf '%s\\n' 'Current session' '55% used' 'Resets 4:30pm (Asia/Tokyo)'
+    IFS= read -r unused
+    """) { executable, directory in
+        let snapshot = try UsageClient(directory: directory).fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+        #expect(snapshot.primary?.usedPercent == 55)
+        #expect(try String(contentsOf: directory.appendingPathComponent("commands"), encoding: .utf8) == "y\n/usage\n")
+    }
+}
+
+@Test(arguments: [false, true])
+func claudeClientResendsUsageOnceAfterLateTrustPrompt(repeatsPrompt: Bool) throws {
+    try withExecutable("""
+    #!/bin/sh
+    if [ "$1" = "auth" ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    printf '%s\\n' 'Starting Claude Code...'
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = /usage ] || exit 8
+    sleep 1.4
+    printf '%s\\n' 'Yes, I trust this folder' 'Enter y/n:'
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = y ] || exit 8
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ "$command" = /usage ] || exit 8
+    if [ "\(repeatsPrompt)" = true ]; then
+      printf '%s\\n' 'Yes, I trust this folder' 'Enter y/n:'
+      IFS= read -r command
+      printf '%s\\n' "$command" >> commands
+      [ "$command" = y ] || exit 8
+      if IFS= read -r -t 2 command; then
+        printf '%s\\n' "$command" >> commands
+      fi
+      exit 0
+    fi
+    printf '%s\\n' 'Show plan usage'
+    IFS= read -r command
+    printf '%s\\n' "$command" >> commands
+    [ -z "$command" ] || exit 8
+    printf '%s\\n' 'Current session' '55% used' 'Resets 4:30pm (Asia/Tokyo)'
+    IFS= read -r unused
+    """) { executable, directory in
+        let client = UsageClient(directory: directory)
+        if repeatsPrompt {
+            #expect(throws: UsageError.timedOut(.claude)) {
+                try client.fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+            }
+        } else {
+            let snapshot = try client.fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+            #expect(snapshot.primary?.usedPercent == 55)
+        }
+        let commands = try String(contentsOf: directory.appendingPathComponent("commands"), encoding: .utf8)
+        #expect(commands == (repeatsPrompt ? "/usage\ny\n/usage\ny\n" : "/usage\ny\n/usage\n\n"))
+    }
+}
+
+@Test func claudeClientUsesIsolatedArgumentsAndEnvironment() throws {
+    try withExecutable("""
+    #!/bin/sh
+    mode=interactive
+    [ "$1" != auth ] || mode=auth
+    printf '%s\\n' "$@" > "$mode-arguments"
+    printf '%s\\n' \\
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=${CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC-unset}" \\
+      "DISABLE_TELEMETRY=${DISABLE_TELEMETRY-unset}" \\
+      "DISABLE_ERROR_REPORTING=${DISABLE_ERROR_REPORTING-unset}" \\
+      "DISABLE_BUG_COMMAND=${DISABLE_BUG_COMMAND-unset}" \\
+      "DISABLE_AUTOUPDATER=${DISABLE_AUTOUPDATER-unset}" > "$mode-environment"
+    if [ "$mode" = auth ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    printf '%s\\n' 'Claude Code ready'
+    IFS= read -r command
+    [ "$command" = /usage ] || exit 8
+    printf '%s\\n' 'Current session' '55% used' 'Resets 4:30pm (Asia/Tokyo)'
+    IFS= read -r unused
+    """) { executable, directory in
+        let snapshot = try UsageClient(directory: directory).fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+        #expect(snapshot.primary?.usedPercent == 55)
+        let authArguments = try String(contentsOf: directory.appendingPathComponent("auth-arguments"), encoding: .utf8)
+        #expect(authArguments == "auth\nstatus\n--json\n")
+        let arguments = try String(contentsOf: directory.appendingPathComponent("interactive-arguments"), encoding: .utf8)
+            .components(separatedBy: "\n").dropLast()
+        #expect(Array(arguments) == ["--safe-mode", "--tools", "", "--strict-mcp-config", "--no-chrome", "--ax-screen-reader"])
+        for mode in ["auth", "interactive"] {
+            let environment = try String(contentsOf: directory.appendingPathComponent("\(mode)-environment"), encoding: .utf8)
+            #expect(environment == """
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=unset
+            DISABLE_TELEMETRY=1
+            DISABLE_ERROR_REPORTING=1
+            DISABLE_BUG_COMMAND=1
+            DISABLE_AUTOUPDATER=1
+
+            """)
+        }
+    }
+}
+
 @Test func cancellingProbeTerminatesItsProcessGroup() throws {
     try withExecutable("""
     #!/bin/sh
