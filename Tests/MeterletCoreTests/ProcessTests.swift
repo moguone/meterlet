@@ -22,7 +22,7 @@ private func withExecutable(_ script: String, body: (URL, URL) throws -> Void) t
         *'"method":"initialized"'*) ;;
         *rateLimits*read*)
           printf '%s\\n' '{"method":"irrelevant/notification","params":{}}'
-          printf '%s\\n' '{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":28,"windowDurationMins":300,"resetsAt":2000000000}}}}' ;;
+          printf '%s\\n' '{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":28,"windowDurationMins":10080,"resetsAt":2000000000}}}}' ;;
         *) exit 9 ;;
       esac
     done
