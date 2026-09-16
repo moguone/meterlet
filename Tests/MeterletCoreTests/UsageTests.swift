@@ -104,7 +104,7 @@ private func fixture(_ file: String) throws -> Data {
 }
 
 @Test func languagesHaveMatchingTranslations() {
-    for key in ["usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly", "error.codexNotFound", "error.claudeNotFound", "error.claudeSignIn"] {
+    for key in ["settings.menuWindow", "settings.menu", "usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly", "error.codexNotFound", "error.claudeNotFound", "error.claudeSignIn"] {
         #expect(L10n(.en).text(key) != key)
         #expect(L10n(.ja).text(key) != key)
         #expect(L10n(.en).text(key) != L10n(.ja).text(key))
@@ -118,4 +118,38 @@ private func fixture(_ file: String) throws -> Data {
     let snapshot = try CodexLimitsParser.parse(data)
     #expect(snapshot.windows.map(\.id) == ["future.primary"])
     #expect(snapshot.windows.first?.scope == "Future")
+}
+
+@Test func menuWindowDefaultsToWeeklyAndRespectsProviderSelection() throws {
+    let claude = try ClaudeUsageParser.parse(String(decoding: fixture("claude.txt"), as: UTF8.self), now: now, timeZone: tokyo)
+    #expect(claude.primary?.id == "session")
+    #expect(claude.menuWindow(preferring: nil)?.id == "weekly")
+    #expect(claude.menuWindow(preferring: "session")?.id == "session")
+    #expect(claude.menuWindow(preferring: "weekly.fable")?.id == "weekly.fable")
+    #expect(claude.menuWindow(preferring: "missing")?.id == "weekly")
+    #expect(claude.menuText(at: now) == "32%")
+    #expect(claude.menuText(at: now, windowID: "session") == "55%")
+    #expect(claude.menuText(at: now, windowID: "weekly.fable") == "68%")
+    #expect(claude.menuText(at: now, windowID: "missing") == "32%")
+    let codex = try CodexLimitsParser.parse(fixture("codex.json"), now: now)
+    #expect(codex.menuWindow(preferring: nil)?.id == "codex.primary")
+    #expect(codex.menuText(at: now) == "28%")
+}
+
+@Test func menuWindowFallbacksAndExpiryUseTheSelectedWindow() {
+    let session = UsageWindow(id: "session", durationMinutes: 300, usedPercent: 10, isPrimary: true)
+    let scoped = UsageWindow(id: "weekly.fable", scope: "Fable", durationMinutes: 10_080, usedPercent: 20)
+    let weekly = UsageWindow(id: "weekly", durationMinutes: 10_080, usedPercent: 30, resetsAt: now)
+    var snapshot = UsageSnapshot(provider: .claude, windows: [session, scoped, weekly], fetchedAt: now)
+    #expect(snapshot.menuWindow(preferring: nil)?.id == "weekly")
+    #expect(snapshot.menuText(at: now) == "—")
+    #expect(snapshot.menuText(at: now, windowID: "session") == "10%")
+    #expect(snapshot.menuText(at: now.addingTimeInterval(900), windowID: "session") == "—")
+    snapshot.windows.removeLast()
+    #expect(snapshot.menuWindow(preferring: "missing")?.id == "weekly.fable")
+    snapshot.windows.removeLast()
+    #expect(snapshot.menuWindow(preferring: nil)?.id == "session")
+    snapshot.windows.removeAll()
+    #expect(snapshot.menuWindow(preferring: nil) == nil)
+    #expect(snapshot.menuText(at: now) == "—")
 }
