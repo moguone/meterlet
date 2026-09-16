@@ -32,6 +32,8 @@ public enum CodexLimitsParser {
         }
         for key in keys {
             guard let bucket = buckets[key] else { continue }
+            guard ![key, bucket.limitId, bucket.limitName].compactMap({ $0 })
+                .contains(where: { $0.lowercased().contains("spark") }) else { continue }
             for (name, value) in [("primary", bucket.primary), ("secondary", bucket.secondary)] {
                 guard let value, value.usedPercent.isFinite, value.usedPercent >= 0 else { continue }
                 let scope = key == "codex" ? nil : (bucket.limitName ?? key)
