@@ -66,7 +66,7 @@ The normal test script also validates feed metadata and provider parsing. Comple
 
 Push the reviewed version tag and wait for the Prepare release workflow to finish. Verify the draft points at the expected commit. Replace its draft notice with the actual signing and notarization result, preserve any unverified provider limitations, and attach the verified ZIP, checksum, and **appcast.xml**. Publish a **normal release**, clear the prerelease flag, and make it the latest release. GitHub’s `/releases/latest/download/appcast.xml` redirects to this asset; drafts and prereleases are not used for in-app updates. Publish the draft only after these checks and the user’s manual verification are complete. Upload all three assets before publishing; publishing without the feed makes update checks fail. Do not upload certificates, private keys, or notarization credentials to the repository or release.
 
-Authenticated Claude/Fable verification remains outstanding. Keep this explicit even after app notarization succeeds; notarization does not validate provider integration behavior.
+Authenticated Claude verification is manual: run the packaged app against the installed Claude Code CLI with a signed-in account and note the CLI version in the release notes. Notarization does not validate provider integration behavior.
 
 ## References
 
