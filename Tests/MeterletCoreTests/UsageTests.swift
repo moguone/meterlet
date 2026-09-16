@@ -11,11 +11,10 @@ private func fixture(_ file: String) throws -> Data {
 
 @Test func codexPrefersBucketsAndDoesNotAssumeFiveHours() throws {
     let snapshot = try CodexLimitsParser.parse(fixture("codex.json"), now: now)
-    #expect(snapshot.windows.count == 2)
+    #expect(snapshot.windows.count == 1)
     #expect(snapshot.primary?.usedPercent == 28)
     #expect(snapshot.primary?.durationMinutes == 10080)
-    #expect(snapshot.windows.last?.scope == "Codex Spark")
-    #expect(snapshot.windows.last?.usedPercent == 0)
+    #expect(snapshot.windows.first?.id == "codex.primary")
     #expect(L10n(.en).windowTitle(snapshot.primary!) == "Weekly usage")
 }
 
@@ -112,4 +111,11 @@ private func fixture(_ file: String) throws -> Data {
     }
     #expect(L10n(.ja).format("settings.minutes", 5) == "5分")
     #expect(L10n(.en).format("window.hours", 24) == "24-hour usage")
+}
+
+@Test func codexExcludesSparkByIDOrNameAndKeepsOtherBuckets() throws {
+    let data = Data(#"{"rateLimitsByLimitId":{"codex_sPaRk":{"primary":{"usedPercent":1}},"other":{"limitName":"Codex SPARK","primary":{"usedPercent":2}},"alias":{"limitId":"SPARK_preview","primary":{"usedPercent":3}},"future":{"limitName":"Future","primary":{"usedPercent":4}}}}"#.utf8)
+    let snapshot = try CodexLimitsParser.parse(data)
+    #expect(snapshot.windows.map(\.id) == ["future.primary"])
+    #expect(snapshot.windows.first?.scope == "Future")
 }
