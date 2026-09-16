@@ -51,7 +51,8 @@
 "settings.privacy" = "Your official CLIs manage sign-in. Only usage numbers and reset times are saved on this Mac. Meterlet has no analytics or application server.";
 "settings.energy" = "CLIs exit after each check. Checks pause during sleep, slow down in Low Power Mode, and back off after errors.";
 "settings.fable" = "Fable and other model-specific limits appear when the official CLI reports them. They are never estimated from total usage.";
-"settings.menu" = "The two-line menu bar shows each provider’s primary window. Hover to see which window.";
+"settings.menu" = "The menu bar shows weekly usage by default. Choose a window for each provider in Settings. Hover to see which window.";
+"settings.menuWindow" = "Menu bar shows";
 "settings.version" = "Version %@";
 "action.checkUpdates" = "Check for Updates…";
 "settings.updates" = "App updates";

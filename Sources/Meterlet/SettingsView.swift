@@ -55,7 +55,10 @@ struct SettingsView: View {
                 Toggle(l.format("settings.enabled", "Codex"), isOn: $store.codexEnabled)
                 Toggle(l.format("settings.enabled", "Claude Code"), isOn: $store.claudeEnabled)
                 ForEach(ProviderID.allCases) { provider in
-                    ExecutablePathRow(store: store, provider: provider)
+                    VStack(alignment: .leading, spacing: 10) {
+                        ExecutablePathRow(store: store, provider: provider)
+                        menuWindowPicker(provider)
+                    }
                 }
             }
             Section {
@@ -75,6 +78,24 @@ struct SettingsView: View {
         .environment(\.locale, l.locale)
     }
 
+    private func menuWindowPicker(_ provider: ProviderID) -> some View {
+        let snapshot = store.state(provider).snapshot
+        let savedID = store.menuWindowIDs[provider.rawValue]
+        let selectedID = snapshot?.menuWindow(preferring: savedID)?.id ?? savedID ?? ""
+        return Picker(l.text("settings.menuWindow"), selection: Binding(
+            get: { selectedID },
+            set: { store.menuWindowIDs[provider.rawValue] = $0 }
+        )) {
+            if let snapshot, !snapshot.windows.isEmpty {
+                ForEach(snapshot.windows) { window in
+                    Text(l.windowTitle(window)).tag(window.id)
+                }
+            } else {
+                Text(savedID ?? l.text("window.weekly")).tag(selectedID)
+            }
+        }
+        .disabled(snapshot?.windows.isEmpty != false)
+    }
 }
 
 private struct ExecutablePathRow: View {

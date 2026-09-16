@@ -51,12 +51,19 @@ public struct UsageSnapshot: Codable, Equatable, Sendable {
     }
 
     public var primary: UsageWindow? { windows.first(where: \.isPrimary) ?? windows.first }
+    public func menuWindow(preferring id: String?) -> UsageWindow? {
+        if let id, let selected = windows.first(where: { $0.id == id }) { return selected }
+        return windows.first(where: { $0.durationMinutes == 10_080 && $0.scope == nil })
+            ?? windows.first(where: { $0.durationMinutes == 10_080 })
+            ?? primary
+    }
     public func isStale(at now: Date, after interval: TimeInterval = 900) -> Bool {
         now.timeIntervalSince(fetchedAt) >= interval || fetchedAt.timeIntervalSince(now) > 60
     }
-    public func menuText(at now: Date, staleAfter: TimeInterval = 900) -> String {
-        guard !isStale(at: now, after: staleAfter), let primary, !primary.isExpired(at: now) else { return "—" }
-        return primary.percentText
+    public func menuText(at now: Date, staleAfter: TimeInterval = 900, windowID: String? = nil) -> String {
+        guard !isStale(at: now, after: staleAfter), let window = menuWindow(preferring: windowID),
+              !window.isExpired(at: now) else { return "—" }
+        return window.percentText
     }
 }
 

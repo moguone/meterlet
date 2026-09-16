@@ -70,12 +70,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
         let now = Date()
         label.rows = store.providers.map { provider in
             let state = store.state(provider)
-            return (provider, state.restored || state.error != nil ? "—" : (state.snapshot?.menuText(at: now, staleAfter: store.policy.staleAfter) ?? "—"))
+            return (provider, state.restored || state.error != nil ? "—" : (state.snapshot?.menuText(at: now, staleAfter: store.policy.staleAfter, windowID: store.menuWindowIDs[provider.rawValue]) ?? "—"))
         }
         let tooltip = store.providers.map { provider in
             let state = store.state(provider)
-            let window = state.snapshot?.primary.map { store.l10n.windowTitle($0) } ?? store.l10n.text("window.usage")
-            let value = state.restored || state.error != nil ? "—" : (state.snapshot?.menuText(at: now, staleAfter: store.policy.staleAfter) ?? "—")
+            let window = state.snapshot?.menuWindow(preferring: store.menuWindowIDs[provider.rawValue]).map { store.l10n.windowTitle($0) } ?? store.l10n.text("window.usage")
+            let value = state.restored || state.error != nil ? "—" : (state.snapshot?.menuText(at: now, staleAfter: store.policy.staleAfter, windowID: store.menuWindowIDs[provider.rawValue]) ?? "—")
             return "\(provider.title) · \(window): \(value)"
         }.joined(separator: "\n")
         statusItem?.button?.toolTip = tooltip

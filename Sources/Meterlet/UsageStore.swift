@@ -22,6 +22,7 @@ final class UsageStore: ObservableObject {
     @Published var codexEnabled: Bool { didSet { saveEnabled(.codex, codexEnabled) } }
     @Published var claudeEnabled: Bool { didSet { saveEnabled(.claude, claudeEnabled) } }
     @Published var paths: [String: String] { didSet { if !demo { defaults.set(paths, forKey: "cliPaths") }; invalidate() } }
+    @Published var menuWindowIDs: [String: String] { didSet { if !demo { defaults.set(menuWindowIDs, forKey: "menuWindowIds") } } }
     let demo: Bool
     let supportDirectory: URL
     var l10n: L10n { L10n(language) }
@@ -44,6 +45,7 @@ final class UsageStore: ObservableObject {
         codexEnabled = UserDefaults.standard.object(forKey: "enabled.codex") as? Bool ?? true
         claudeEnabled = UserDefaults.standard.object(forKey: "enabled.claude") as? Bool ?? true
         paths = UserDefaults.standard.dictionary(forKey: "cliPaths") as? [String: String] ?? [:]
+        menuWindowIDs = demo ? [:] : UserDefaults.standard.dictionary(forKey: "menuWindowIds") as? [String: String] ?? [:]
         supportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             .appendingPathComponent("Meterlet", isDirectory: true)
         cache = SnapshotCache(directory: supportDirectory.appendingPathComponent("Usage"))

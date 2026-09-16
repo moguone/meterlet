@@ -24,7 +24,7 @@ Two compact rows fit into a fixed **48-point** menu bar item, leaving more room 
 ## What it does
 
 - Shows Codex and Claude Code on separate menu bar rows, or just the provider you enable.
-- Displays the usage windows actually reported by the official CLIs. Codex's primary window is not always five hours; hover over the menu item to identify it.
+- Displays the usage windows reported by the official CLIs. The menu bar defaults to weekly usage; choose a different window for each provider in Settings and hover over the menu item to identify it.
 - Shows Claude's Fable and other model-specific weekly limits **when reported**, without inferring them from the overall quota.
 - Includes English and Japanese, with a language selector and localized dates and countdowns.
 - Checks every five minutes by default. Choose 1, 5, 10, or 15 minutes; checks pause during sleep and slow down in Low Power Mode or after errors.
