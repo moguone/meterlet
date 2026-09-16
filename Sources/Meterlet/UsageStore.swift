@@ -118,8 +118,7 @@ final class UsageStore: ObservableObject {
 
     private func fetch(_ provider: ProviderID) {
         states[provider]?.lastAttempt = Date()
-        let executables = CLIResolver.candidates(provider, override: paths[provider.rawValue] ?? "")
-        guard !executables.isEmpty else {
+        guard let executable = CLIResolver.resolve(provider, override: paths[provider.rawValue] ?? "") else {
             finish(provider, result: .failure(.cliNotFound(provider)))
             return
         }
@@ -130,7 +129,7 @@ final class UsageStore: ObservableObject {
         tasks[provider] = Task { [weak self] in
             let result = await withTaskCancellationHandler {
                 await Task.detached(priority: .utility) { () -> Result<UsageSnapshot, UsageError> in
-                    do { return .success(try client.fetch(provider, executables: executables, cancellation: cancellation)) }
+                    do { return .success(try client.fetch(provider, executable: executable, cancellation: cancellation)) }
                     catch let error as UsageError { return .failure(error) }
                     catch { return .failure(.unavailable(provider)) }
                 }.value

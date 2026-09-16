@@ -33,34 +33,23 @@ final class CLIProcess {
     private let cancellation: ProbeCancellation
     private(set) var input: FileHandle
     private(set) var output: FileHandle
-    private var slave: FileHandle?
-    private var isPTY: Bool
     private var stopped = false
     private var processGroup: pid_t?
 
     init(executable: URL, arguments: [String], directory: URL, environment: [String: String],
-         pty: Bool = false, cancellation: ProbeCancellation) throws {
+         mergeStandardError: Bool = false, nullStandardInput: Bool = false, cancellation: ProbeCancellation) throws {
         self.cancellation = cancellation
-        self.isPTY = pty
-        if pty {
-            var masterFD: Int32 = -1, slaveFD: Int32 = -1
-            var size = winsize(ws_row: 64, ws_col: 140, ws_xpixel: 0, ws_ypixel: 0)
-            guard openpty(&masterFD, &slaveFD, nil, nil, &size) == 0 else { throw UsageError.unavailable(.claude) }
-            let master = FileHandle(fileDescriptor: masterFD, closeOnDealloc: true)
-            let terminal = FileHandle(fileDescriptor: slaveFD, closeOnDealloc: true)
-            input = master
-            output = master
-            slave = terminal
-            process.standardInput = terminal
-            process.standardOutput = terminal
-            process.standardError = terminal
+        let stdoutPipe = Pipe()
+        output = stdoutPipe.fileHandleForReading
+        process.standardOutput = stdoutPipe
+        process.standardError = mergeStandardError ? stdoutPipe : FileHandle.nullDevice
+        if nullStandardInput {
+            input = FileHandle.nullDevice
+            process.standardInput = FileHandle.nullDevice
         } else {
-            let stdinPipe = Pipe(), stdoutPipe = Pipe()
+            let stdinPipe = Pipe()
             input = stdinPipe.fileHandleForWriting
-            output = stdoutPipe.fileHandleForReading
             process.standardInput = stdinPipe
-            process.standardOutput = stdoutPipe
-            process.standardError = FileHandle.nullDevice
         }
         process.executableURL = executable
         process.arguments = arguments
@@ -72,13 +61,10 @@ final class CLIProcess {
             try process.run()
             let pid = process.processIdentifier
             if getpgid(pid) == pid { processGroup = pid }
-            try slave?.close()
-            slave = nil
         } catch {
             cancellation.unregister(process)
             try? input.close()
-            if !pty { try? output.close() }
-            try? slave?.close()
+            try? output.close()
             throw error
         }
     }
@@ -114,7 +100,7 @@ final class CLIProcess {
         guard !stopped else { return }
         stopped = true
         try? input.close()
-        if !isPTY { try? output.close() }
+        try? output.close()
         if let group = processGroup { kill(-group, SIGTERM) }
         else if process.isRunning { process.terminate() }
         let deadline = Date().addingTimeInterval(0.5)

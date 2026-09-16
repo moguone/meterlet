@@ -34,16 +34,16 @@ Two compact rows fit into a fixed **48-point** menu bar item, leaving more room 
 ## Install and set up
 
 1. Download the `macOS-arm64.zip` from [Releases](https://github.com/moguone/meterlet/releases), unzip it, and move **Meterlet.app** to Applications.
-2. Set up the providers you use, as described below. Meterlet can use their desktop runtimes or separately installed official CLIs. A supported subscription and available quota information are required; API-key billing is not supported.
+2. Set up the providers you use, as described below. The official Codex CLI and Claude Code CLI must be installed separately for the providers you use. A supported subscription and available quota information are required; API-key billing is not supported.
 3. Open Meterlet and click its two-line menu item. Turn off any provider you do not use in Settings.
 
 Right-click the menu bar item for Usage, Settings, Check for Updates, and Quit. While Meterlet is active, use **⌘1** to open or close usage, **⌘,** for Settings, or **⌘Q** to quit. Before replacing an older version, quit it first. Only one copy stays running, even if you open the app from another folder.
 
-**Codex:** Meterlet can use the CLI inside the ChatGPT or Codex desktop app. It also discovers renamed or relocated apps registered with macOS. A separate Codex CLI install is optional. If sign-in is required, choose **Set up in Terminal** to use the official program’s sign-in flow.
+**Codex:** Install Codex CLI. If sign-in is required, choose **Set up in Terminal** to use the official CLI’s sign-in flow.
 
-**Claude:** Once Claude desktop has downloaded its Code runtime, Meterlet can use it without a separate CLI install. Open the **Code** feature and complete its setup first. Desktop sign-in does not guarantee the runtime is signed in when launched separately; if prompted, use **Set up in Terminal** to finish Claude Code’s sign-in and initial setup. Meterlet does not extract the desktop app’s credentials. A chat-only installation with no downloaded Code runtime is insufficient. Separately installing [Claude Code CLI](https://code.claude.com/docs/en/setup) is also supported.
+**Claude:** Install [Claude Code CLI](https://code.claude.com/docs/en/setup) version **2.1.273 or later**. Older versions show an update prompt. Use **Set up in Terminal** to finish Claude Code’s sign-in and initial setup.
 
-A manually selected executable is fixed. Automatic detection tries the installed CLI first, then the desktop runtime if the CLI is missing or returns an authentication error. Network failures, rate limits, setup errors, and unrecognized output do not trigger a switch. If both installations require sign-in, Meterlet shows the sign-in error after trying both. The desktop runtime uses its own available authentication; Meterlet does not transfer credentials from the desktop app. Claude’s newest executable native desktop runtime is selected on each check; its VM runtime is excluded. If detection fails, choose the executable in Settings, or enter its absolute path and press Return. Desktop runtime locations are implementation details of the official apps and may change in future versions.
+Automatic detection checks `~/.local/bin`, Homebrew, `/usr/local/bin`, PATH, and runtime-manager shims, in that order. If detection fails, choose the executable in Settings, or enter its absolute path and press Return. A manually selected executable is fixed.
 
 **Official downloads are published after Developer ID signing and Apple notarization.** CI artifacts and default local builds are ad-hoc-signed development builds. macOS may block downloaded development builds; you can build the source locally. Get verified distribution builds from [Releases](https://github.com/moguone/meterlet/releases).
 
@@ -59,9 +59,9 @@ The first version with this feature must be installed manually; earlier versions
 
 - `—` means unavailable, expired, or stale data. It does **not** mean 0%. A failed check keeps the last successful snapshot in the panel, dimmed and labeled as old.
 - Fable appears only when Claude's `/usage` command returns a model-specific section. Missing Fable data is identified explicitly. Historical token logs cannot reconstruct the current subscription quota.
-- Claude's collector uses the official interactive `/usage` output because the status-line API only exposes the general five-hour and seven-day windows. This text format can change. A recent CLI supporting `--safe-mode` and `--ax-screen-reader` is required; update the CLI if prompted.
-- Codex fetching, Claude's logged-out behavior, and Claude's authenticated `/usage` flow have been tested against the installed CLIs (Claude Code 2.1.273 with a Claude Max account). Fable parsing is covered by fixtures and appears when the CLI includes the model-specific row in its `/usage` output.
-- The displayed countdown advances once a minute while the panel is open. Unrecognized CLI reset text is shown as reported, without an invented date.
+- Claude’s collector reads the structured `usage_report` output of `claude -p "/usage"`. Claude Code 2.1.273 or later is required; update the CLI if prompted.
+- Codex fetching and Claude’s logged-out behavior have been tested against the installed CLIs. Structured `usage_report` fetching with `claude -p "/usage"` has been verified with Claude Code 2.1.273 and a Claude Max account. Fable and other model-specific rows appear when returned by the CLI.
+- The displayed countdown advances once a minute while the panel is open.
 - This independent project is not affiliated with OpenAI or Anthropic. Provider names identify the services it supports.
 
 ## Privacy and resource use
@@ -104,6 +104,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, translations, and the project 
 
 ## References and license
 
-The integrations use OpenAI's [app-server account usage API](https://learn.chatgpt.com/docs/app-server), Anthropic's [`/usage` command](https://code.claude.com/docs/en/commands), and its documented [status-line fields](https://code.claude.com/docs/en/statusline). See Anthropic's [Fable plan limits](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan) for how model-specific allowances relate to the overall limit.
+The integrations use OpenAI's [app-server account usage API](https://learn.chatgpt.com/docs/app-server) and Anthropic's [`/usage` command](https://code.claude.com/docs/en/commands) in print mode. See Anthropic's [Fable plan limits](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan) for how model-specific allowances relate to the overall limit.
 
 [MIT](LICENSE). The app source and geometric artwork are original to this project. Sparkle and its bundled components are covered by [third-party notices](THIRD_PARTY_NOTICES.md).
