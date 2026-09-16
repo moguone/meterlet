@@ -36,7 +36,7 @@ Screenshots must use demo data. They can be regenerated from a packaged app:
 
 ## Releases
 
-The `main` workflow runs tests, creates an Apple Silicon app, and uploads a build artifact. A `v*` tag invokes the release workflow and creates a draft release without public app assets. Development build artifacts remain in Actions. A maintainer signs and notarizes the app locally before attaching verified assets and publishing the release; see [RELEASING.md](docs/RELEASING.md). Live Claude/Fable validation is still outstanding; preserve that limitation in release notes until verified with an eligible account.
+The `main` workflow runs tests, creates an Apple Silicon app, and uploads a build artifact. A `v*` tag invokes the release workflow and creates a draft release without public app assets. Development build artifacts remain in Actions. A maintainer signs and notarizes the app locally before attaching verified assets and publishing the release; see [RELEASING.md](docs/RELEASING.md). Live Claude validation is manual; record the Claude Code version it was checked against in the release notes.
 
 Do not describe builds as notarized unless the archive has actually passed notarization and stapling. The packaging script supports optional `CODE_SIGN_IDENTITY` and `NOTARY_PROFILE` values for a developer-managed signing environment.
 

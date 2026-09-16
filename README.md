@@ -60,7 +60,7 @@ The first version with this feature must be installed manually; earlier versions
 - `—` means unavailable, expired, or stale data. It does **not** mean 0%. A failed check keeps the last successful snapshot in the panel, dimmed and labeled as old.
 - Fable appears only when Claude's `/usage` command returns a model-specific section. Missing Fable data is identified explicitly. Historical token logs cannot reconstruct the current subscription quota.
 - Claude's collector uses the official interactive `/usage` output because the status-line API only exposes the general five-hour and seven-day windows. This text format can change. A recent CLI supporting `--safe-mode` and `--ax-screen-reader` is required; update the CLI if prompted.
-- Codex fetching and Claude's logged-out behavior have been tested against the installed CLIs. Claude's authenticated flow and Fable parsing are covered by simulated CLI processes and fixtures; **live authenticated Claude/Fable validation remains outstanding** for this preview.
+- Codex fetching, Claude's logged-out behavior, and Claude's authenticated `/usage` flow have been tested against the installed CLIs (Claude Code 2.1.273 with a Claude Max account). Fable parsing is covered by fixtures and appears when the CLI includes the model-specific row in its `/usage` output.
 - The displayed countdown advances once a minute while the panel is open. Unrecognized CLI reset text is shown as reported, without an invented date.
 - This independent project is not affiliated with OpenAI or Anthropic. Provider names identify the services it supports.
 
