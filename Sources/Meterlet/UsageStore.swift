@@ -195,8 +195,7 @@ final class UsageStore: ObservableObject {
     private func loadDemo() {
         let time = Date()
         states[.codex] = ProviderState(snapshot: UsageSnapshot(provider: .codex, windows: [
-            UsageWindow(id: "codex.primary", durationMinutes: 300, usedPercent: 28, resetsAt: time.addingTimeInterval(7_800), isPrimary: true),
-            UsageWindow(id: "codex.secondary", durationMinutes: 10_080, usedPercent: 41, resetsAt: time.addingTimeInterval(259_200)),
+            UsageWindow(id: "codex.primary", durationMinutes: 10_080, usedPercent: 28, resetsAt: time.addingTimeInterval(259_200), isPrimary: true),
         ], fetchedAt: time))
         states[.claude] = ProviderState(snapshot: UsageSnapshot(provider: .claude, windows: [
             UsageWindow(id: "session", durationMinutes: 300, usedPercent: 55, resetsAt: time.addingTimeInterval(2_880), isPrimary: true),

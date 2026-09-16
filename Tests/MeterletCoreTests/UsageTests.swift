@@ -9,7 +9,7 @@ private func fixture(_ file: String) throws -> Data {
     try Data(contentsOf: Bundle.module.url(forResource: file, withExtension: nil, subdirectory: "Fixtures")!)
 }
 
-@Test func codexPrefersBucketsAndDoesNotAssumeFiveHours() throws {
+@Test func codexPrefersWeeklyBucketOverLegacyLimits() throws {
     let snapshot = try CodexLimitsParser.parse(fixture("codex.json"), now: now)
     #expect(snapshot.windows.count == 1)
     #expect(snapshot.primary?.usedPercent == 28)
@@ -74,7 +74,7 @@ private func fixture(_ file: String) throws -> Data {
 }
 
 @Test func expiredAndStaleDataNeverLooksLive() {
-    let window = UsageWindow(id: "session", durationMinutes: 300, usedPercent: 100, resetsAt: now, isPrimary: true)
+    let window = UsageWindow(id: "codex.primary", durationMinutes: 10_080, usedPercent: 100, resetsAt: now, isPrimary: true)
     var snapshot = UsageSnapshot(provider: .codex, windows: [window], fetchedAt: now)
     #expect(snapshot.menuText(at: now) == "—")
     snapshot.windows[0].resetsAt = now.addingTimeInterval(10000)

@@ -18,7 +18,7 @@ private func probe(_ provider: ProviderID, name: String, result: StubResult, dir
         let response: String
         switch result {
         case .success:
-            response = #"{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":\#(value),"windowDurationMins":300}}}}"#
+            response = #"{"id":2,"result":{"rateLimits":{"primary":{"usedPercent":\#(value),"windowDurationMins":10080}}}}"#
         case .signedOut: response = #"{"id":2,"error":{"code":-32000,"message":"Not logged in"}}"#
         case .expired: response = #"{"id":2,"error":{"code":401,"message":"Token expired"}}"#
         case .unavailable: response = #"{"id":2,"error":{"code":500,"message":"Authentication service unavailable"}}"#
