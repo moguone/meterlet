@@ -79,7 +79,8 @@ public struct UsageClient: Sendable {
         env["TERM"] = "xterm-256color"
         env["NO_COLOR"] = "1"
         env["DISABLE_AUTOUPDATER"] = "1"
-        env["DISABLE_TELEMETRY"] = "1"
+        // DISABLE_TELEMETRY also hides the model-scoped rows in /usage, even when inherited.
+        env.removeValue(forKey: "DISABLE_TELEMETRY")
         env["DISABLE_ERROR_REPORTING"] = "1"
         env["DISABLE_BUG_COMMAND"] = "1"
         // Essential-traffic mode also blocks the usage API, including when inherited from a shell.
@@ -100,6 +101,7 @@ public struct UsageClient: Sendable {
         var data = Data(), lastChange = Date(), sentAt: Date?, confirmedPalette = false
         var trustResponses = 0, usageAttempts = 0
         var lastSnapshot: UsageSnapshot?
+        var firstSnapshotAt: Date?
         while Date().timeIntervalSince(started) < 25 {
             if let chunk = try cli.read() {
                 if chunk.isEmpty { break }
@@ -122,6 +124,7 @@ public struct UsageClient: Sendable {
                 sentAt = nil
                 confirmedPalette = false
                 lastSnapshot = nil
+                firstSnapshotAt = nil
                 data.removeAll(keepingCapacity: true)
                 lastChange = Date()
                 continue
@@ -140,9 +143,15 @@ public struct UsageClient: Sendable {
                 try cli.send(Data("\r".utf8))
                 confirmedPalette = true
             }
-            if sentAt != nil, let snapshot = try? ClaudeUsageParser.parse(text) { lastSnapshot = snapshot }
-            if let snapshot = lastSnapshot, Date().timeIntervalSince(lastChange) >= 0.8,
-               !text.lowercased().hasSuffix("loading usage data…") {
+            if sentAt != nil, let snapshot = try? ClaudeUsageParser.parse(text) {
+                lastSnapshot = snapshot
+                if firstSnapshotAt == nil { firstSnapshotAt = Date() }
+            }
+            let tail = lower.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let snapshot = lastSnapshot, let firstSnapshotAt,
+               Date().timeIntervalSince(lastChange) >= 0.8,
+               !tail.hasSuffix("loading usage data…"), !tail.hasSuffix("refreshing…"),
+               Date().timeIntervalSince(firstSnapshotAt) >= 1.5 || snapshot.windows.contains(where: { $0.scope != nil }) {
                 return snapshot
             }
         }

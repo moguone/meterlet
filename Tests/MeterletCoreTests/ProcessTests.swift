@@ -270,7 +270,7 @@ func claudeClientResendsUsageOnceAfterLateTrustPrompt(repeatsPrompt: Bool) throw
             let environment = try String(contentsOf: directory.appendingPathComponent("\(mode)-environment"), encoding: .utf8)
             #expect(environment == """
             CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=unset
-            DISABLE_TELEMETRY=1
+            DISABLE_TELEMETRY=unset
             DISABLE_ERROR_REPORTING=1
             DISABLE_BUG_COMMAND=1
             DISABLE_AUTOUPDATER=1
@@ -302,5 +302,44 @@ func claudeClientResendsUsageOnceAfterLateTrustPrompt(repeatsPrompt: Bool) throw
         let end = Date().addingTimeInterval(2)
         while kill(child, 0) == 0 && Date() < end { usleep(10_000) }
         #expect(kill(child, 0) == -1)
+    }
+}
+
+@Test(arguments: [false, true])
+func claudeClientWaitsForDelayedModelRows(includesFable: Bool) throws {
+    try withExecutable("""
+    #!/bin/sh
+    if [ "$1" = auth ]; then
+      printf '%s\\n' '{"loggedIn":true,"authMethod":"claude.ai"}'
+      exit 0
+    fi
+    printf '%s\\n' 'Claude Code ready'
+    IFS= read -r command
+    [ "$command" = /usage ] || exit 8
+    touch first-snapshot
+    printf '%s\\n' 'Current session' '55% used' 'Resets 4:30pm (Asia/Tokyo)'
+    printf '%s\\n' 'Current week (all models)' '32% used' 'Resets Sep 11 at 2pm (Asia/Tokyo)'
+    if [ "\(includesFable)" = true ]; then
+      printf '%s\\n' 'Refreshing…'
+      sleep 1.0
+      printf '\\033[2J\\033[H'
+      printf '%s\\n' 'Current session' '56% used' 'Resets 4:30pm (Asia/Tokyo)'
+      printf '%s\\n' 'Current week (all models)' '33% used' 'Resets Sep 11 at 2pm (Asia/Tokyo)'
+      printf '%s\\n' 'Current week (Fable)' '68% used' 'Resets Sep 11 at 2pm (Asia/Tokyo)'
+    fi
+    IFS= read -r unused
+    """) { executable, directory in
+        let snapshot = try UsageClient(directory: directory).fetch(.claude, executable: executable, cancellation: ProbeCancellation())
+        #expect(snapshot.windows.count == (includesFable ? 3 : 2))
+        #expect(snapshot.primary?.usedPercent == (includesFable ? 56 : 55))
+        #expect(snapshot.windows.allSatisfy { $0.resetsAt != nil })
+        if includesFable {
+            #expect(snapshot.windows.first { $0.id == "weekly.fable" }?.usedPercent == 68)
+        } else {
+            let attributes = try FileManager.default.attributesOfItem(atPath: directory.appendingPathComponent("first-snapshot").path)
+            let firstOutput = try #require(attributes[.modificationDate] as? Date)
+            #expect(Date().timeIntervalSince(firstOutput) >= 1.5)
+            #expect(Date().timeIntervalSince(firstOutput) < 5)
+        }
     }
 }
