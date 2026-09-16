@@ -34,14 +34,14 @@ Meterlet は、作業中も2つのサービスの使用率を表示する小さ�
 ## インストール
 
 1. [Releases](https://github.com/moguone/meterlet/releases) から `macOS-arm64.zip` を取得し、展開した **Meterlet.app** を Applications に移動します。
-2. 下記の説明に沿って、利用するサービスを設定します。デスクトップ版の実行プログラム、または別途インストールした公式 CLI を利用できます。利用枠を取得できるサブスクリプションが必要で、API キーの従量課金は対象外です。
+2. 下記の説明に沿って、利用するサービスを設定します。利用するサービスの公式 CLI（Codex CLI、Claude Code CLI）を別途インストールする必要があります。利用枠を取得できるサブスクリプションが必要で、API キーの従量課金は対象外です。
 3. Meterlet を起動し、メニューバーの2行表示をクリックします。使わないサービスは設定で無効にできます。
 
-**Codex:** ChatGPT / Codex デスクトップアプリ内の CLI を利用でき、CLI の追加インストールは不要です。macOS に登録されていれば、アプリ名や配置を変更した場合も検出します。認証が必要な場合は「ターミナルでセットアップ」から公式プログラムのログインを行います。
+**Codex:** Codex CLI をインストールしてください。認証が必要な場合は「ターミナルで設定する」から公式 CLI のログインを行います。
 
-**Claude:** デスクトップ版が Code 機能の実行プログラムをダウンロード済みであれば、CLI の追加インストールは不要です。まず Claude の **Code** 機能の初期設定を完了してください。デスクトップ版にログイン済みでも、単独で起動した実行プログラムには別途認証が必要な場合があります。表示された場合は「ターミナルでセットアップ」で Claude Code のログインと初期設定を行います。Meterlet がデスクトップ版の認証情報を取り出すことはありません。Code の実行プログラムがないチャット専用のインストールでは取得できません。[Claude Code CLI](https://code.claude.com/docs/en/setup) の別途インストールも利用できます。
+**Claude:** [Claude Code CLI](https://code.claude.com/docs/en/setup) の **2.1.273 以降**をインストールしてください。古いバージョンでは更新案内を表示します。「ターミナルで設定する」から Claude Code のログインと初期設定を行います。
 
-手動指定した実行ファイルは固定して使います。自動検出では CLI を先に試し、見つからない場合、または認証エラーの場合にデスクトップ版の実行プログラムを試します。通信障害・レート制限・初期設定不足・表示形式の不一致では切り替えません。両方とも認証できなければ、両方を試した後でログイン案内を表示します。デスクトップ版の実行プログラムが利用できる認証を使い、デスクトップアプリから認証情報を取り出して渡すことはしません。Claude の同梱プログラムは取得のたびに利用可能な最新バージョンを探し、VM 用のプログラムは使用しません。自動検出できない場合は設定で実行ファイルを選択するか、絶対パスを入力して Return で確定してください。同梱プログラムの配置は公式アプリの内部仕様であり、今後の変更に追従が必要な場合があります。
+自動検出では `~/.local/bin`、Homebrew、`/usr/local/bin`、PATH、ランタイム管理ツールの shims の順に探します。見つからない場合は設定で実行ファイルを選択するか、絶対パスを入力して Return で確定してください。手動指定した実行ファイルは固定して使います。
 
 **配布用アプリは Developer ID の署名・Apple の公証を確認してから公開します。** CI の成果物と通常のローカルビルドは、開発確認用のアドホック署名です。ダウンロードした開発用ビルドは macOS にブロックされる場合があります。ソースからのビルドも利用できます。配布用アプリは [Releases](https://github.com/moguone/meterlet/releases) から取得できます。
 
@@ -61,9 +61,9 @@ GitHub の最新の通常リリースに添付した、署名付き `appcast.xml
 
 - `—` は未取得・期限切れ・古いデータを表し、0% を意味しません。取得に失敗した場合、直前の成功データはパネル内に薄く表示し、古い情報であることを示します。
 - Fable は Claude の `/usage` がモデル別の枠を返す場合のみ表示します。返されない場合はその旨を表示します。過去のトークンログから現在の利用上限を再現することはできません。
-- Claude のステータスライン API は全体の5時間・7日間の枠のみを返すため、モデル別の枠は公式 `/usage` の表示から取得します。CLI の表示形式が変わると取得できなくなる可能性があります。`--safe-mode` と `--ax-screen-reader` に対応する新しい CLI が必要です。
-- Codex の取得、Claude の未ログイン時の挙動、Claude のログイン後の `/usage` 取得は実環境（Claude Code 2.1.273、Claude Max アカウント）で確認しています。Fable の解析はテストデータで確認しており、CLI がモデル別の枠を `/usage` に含める場合に表示されます。
-- 残り時間はパネルを開いている間、1分ごとに更新します。解析できないリセット日時は、CLI が返した文言をそのまま表示します。
+- Claude の取得には `claude -p "/usage"` の構造化出力（`usage_report`）を使います。Claude Code 2.1.273 以降が必要です。案内が表示された場合は CLI を更新してください。
+- Codex の取得と Claude の未ログイン時の挙動は実環境で確認しています。`claude -p "/usage"` の構造化出力（`usage_report`）を読む方式は、Claude Code 2.1.273、Claude Max アカウントで確認済みです。Fable などモデル別の行は CLI が返す場合に表示します。
+- 残り時間はパネルを開いている間、1分ごとに更新します。
 - OpenAI・Anthropic の公式アプリではありません。サービス名は対応先を示すために使用しています。
 
 ## プライバシーと負荷
@@ -106,7 +106,7 @@ VERSION="0.2.0" ./scripts/package-app.sh
 
 ## 参照・ライセンス
 
-OpenAI の [app-server 使用量 API](https://learn.chatgpt.com/docs/app-server)、Anthropic の [`/usage` コマンド](https://code.claude.com/docs/en/commands)と[ステータスライン仕様](https://code.claude.com/docs/en/statusline)を利用しています。モデル別枠と全体枠の関係は [Fable のプラン別上限](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan)を参照してください。
+OpenAI の [app-server 使用量 API](https://learn.chatgpt.com/docs/app-server) と、Anthropic の [`/usage` コマンド](https://code.claude.com/docs/en/commands)の非対話モード出力を利用しています。モデル別枠と全体枠の関係は [Fable のプラン別上限](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan)を参照してください。
 
 [MIT License](LICENSE)。ソースコードと幾何学図形のアプリアイコンは本プロジェクトで作成しています。
 

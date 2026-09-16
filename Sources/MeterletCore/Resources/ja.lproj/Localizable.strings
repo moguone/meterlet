@@ -30,7 +30,7 @@
 "error.cliNotFound" = "CLI が見つかりません。インストールするか、設定から場所を指定してください。";
 "error.signIn" = "利用上限を表示するには公式 CLI へのログインが必要です。";
 "error.setup" = "ターミナルで公式 CLI の初期設定を完了してください。";
-"error.updateCLI" = "公式 CLI を新しいバージョンに更新してください。";
+"error.updateCLI" = "公式 CLI を更新してください。Claude Code は 2.1.273 以降が必要です。";
 "error.timeout" = "CLI の応答がありません。少し待ってから再度お試しください。";
 "error.noUsage" = "取得できる利用上限がありません。API の従量課金とは別の情報です。";
 "error.invalidResponse" = "CLI の使用量データを読み取れませんでした。";
@@ -60,6 +60,6 @@
 "settings.updateExplanation" = "1日ごとに GitHub を確認します。ダウンロードとインストールは更新内容を確認してから実行します。";
 "settings.updateUnavailable" = "アプリの更新は配布用アプリで利用できます。";
 "settings.lastUpdateCheck" = "最終確認 %@";
-"error.codexNotFound" = "Codex が見つかりません。ChatGPT / Codex アプリか Codex CLI をインストールするか、設定で場所を指定してください。";
-"error.claudeNotFound" = "Claude Code が見つかりません。Claude デスクトップの Code 機能を初期設定するか、Claude Code CLI をインストールしてください。";
-"error.claudeSignIn" = "「ターミナルでセットアップ」から Claude Code にログインしてください。デスクトップ版とは別の認証が必要な場合があります。同梱プログラムを検出できれば、CLI の追加インストールは不要です。";
+"error.codexNotFound" = "Codex CLI が見つかりません。インストールするか、設定で場所を指定してください。";
+"error.claudeNotFound" = "Claude Code CLI が見つかりません。インストールするか、設定で場所を指定してください。";
+"error.claudeSignIn" = "「ターミナルで設定する」から Claude Code にログインしてください。";
