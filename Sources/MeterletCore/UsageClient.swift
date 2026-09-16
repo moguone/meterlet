@@ -4,19 +4,6 @@ public struct UsageClient: Sendable {
     public let directory: URL
     public init(directory: URL) { self.directory = directory }
 
-    /// Try another installation only when authentication failed. Do not hide other errors.
-    public func fetch(_ provider: ProviderID, executables: [URL], cancellation: ProbeCancellation) throws -> UsageSnapshot {
-        for (index, executable) in executables.enumerated() {
-            try cancellation.check()
-            do {
-                return try fetch(provider, executable: executable, cancellation: cancellation)
-            } catch let error as UsageError {
-                guard error == .signInRequired(provider), index + 1 < executables.count else { throw error }
-            }
-        }
-        throw UsageError.cliNotFound(provider)
-    }
-
     public func fetch(_ provider: ProviderID, executable: URL, cancellation: ProbeCancellation) throws -> UsageSnapshot {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
                                                attributes: [.posixPermissions: 0o700])
@@ -76,7 +63,6 @@ public struct UsageClient: Sendable {
 
     private func claude(_ executable: URL, cancellation: ProbeCancellation) throws -> UsageSnapshot {
         var env = CLIResolver.environment()
-        env["TERM"] = "xterm-256color"
         env["NO_COLOR"] = "1"
         env["DISABLE_AUTOUPDATER"] = "1"
         // DISABLE_TELEMETRY also hides the model-scoped rows in /usage, even when inherited.
@@ -91,73 +77,33 @@ public struct UsageClient: Sendable {
             env.removeValue(forKey: key)
         }
         try checkClaudeAuth(executable, environment: env, cancellation: cancellation)
-        // --settings triggers onboarding; safe mode already disables hooks/MCP.
-        // Allow deep-link registration rather than overriding settings.
         let cli = try CLIProcess(executable: executable, arguments: [
-            "--safe-mode", "--tools", "", "--strict-mcp-config", "--no-chrome", "--ax-screen-reader",
-        ], directory: directory, environment: env, pty: true, cancellation: cancellation)
+            "-p", "/usage", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+            "--strict-mcp-config", "--safe-mode", "--tools", "", "--no-chrome",
+        ], directory: directory, environment: env, mergeStandardError: true, nullStandardInput: true,
+           cancellation: cancellation)
         defer { cli.stop() }
-        let started = Date()
-        var data = Data(), lastChange = Date(), sentAt: Date?, confirmedPalette = false
-        var trustResponses = 0, usageAttempts = 0
-        var lastSnapshot: UsageSnapshot?
-        var firstSnapshotAt: Date?
-        while Date().timeIntervalSince(started) < 25 {
+        let deadline = Date().addingTimeInterval(20)
+        var data = Data()
+        var lineStart = 0
+        while Date() < deadline {
             if let chunk = try cli.read() {
-                if chunk.isEmpty { break }
+                if chunk.isEmpty { return try ClaudeUsageParser.parse(data) }
                 data.append(chunk)
-                lastChange = Date()
                 guard data.count < 1_048_576 else { throw UsageError.invalidResponse(.claude) }
-            }
-            let text = ClaudeUsageParser.cleanTerminal(String(decoding: data, as: UTF8.self))
-            let lower = text.lowercased()
-            let failure = ClaudeUsageParser.classifyFailure(text)
-            if [.setupRequired(.claude), .signInRequired(.claude), .unsupportedCLI(.claude), .rateLimited(.claude)].contains(failure) {
-                throw failure
-            }
-            if trustResponses < 3 && (text.contains("Yes, I trust this folder") || text.contains("Enter y/n")
-                || text.contains("Please answer y or n")) {
-                // Only our own empty probe folder is accepted, with hooks/MCP/tools disabled.
-                try cli.send(Data("y\r".utf8))
-                trustResponses += 1
-                // A late trust prompt can consume /usage; retry it only once after accepting.
-                sentAt = nil
-                confirmedPalette = false
-                lastSnapshot = nil
-                firstSnapshotAt = nil
-                data.removeAll(keepingCapacity: true)
-                lastChange = Date()
-                continue
-            }
-            if sentAt == nil && usageAttempts < 2, Date().timeIntervalSince(started) >= 2,
-               Date().timeIntervalSince(lastChange) >= 0.8,
-               !lower.contains("trust"), !lower.contains("y/n"), !lower.contains("please answer y or n") {
-                try cli.send(Data("/usage\r".utf8))
-                usageAttempts += 1
-                sentAt = Date()
-                data.removeAll(keepingCapacity: true)
-                continue
-            }
-            if let sentAt, !confirmedPalette, Date().timeIntervalSince(sentAt) > 1,
-               text.contains("Show plan usage"), !text.contains("Current session") {
-                try cli.send(Data("\r".utf8))
-                confirmedPalette = true
-            }
-            if sentAt != nil, let snapshot = try? ClaudeUsageParser.parse(text) {
-                lastSnapshot = snapshot
-                if firstSnapshotAt == nil { firstSnapshotAt = Date() }
-            }
-            let tail = lower.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let snapshot = lastSnapshot, let firstSnapshotAt,
-               Date().timeIntervalSince(lastChange) >= 0.8,
-               !tail.hasSuffix("loading usage data…"), !tail.hasSuffix("refreshing…"),
-               Date().timeIntervalSince(firstSnapshotAt) >= 1.5 || snapshot.windows.contains(where: { $0.scope != nil }) {
-                return snapshot
+                // A descendant may keep the output pipe open after the final event.
+                // Inspect only complete lines, including events split across reads.
+                while let end = data[lineStart...].firstIndex(of: 10) {
+                    let line = Data(data[lineStart..<end])
+                    lineStart = end + 1
+                    if let event = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+                       event["type"] as? String == "result" {
+                        return try ClaudeUsageParser.parse(data)
+                    }
+                }
             }
         }
-        if let lastSnapshot { return lastSnapshot }
-        let failure = ClaudeUsageParser.classifyFailure(String(decoding: data, as: UTF8.self))
-        throw failure == .noUsage(.claude) ? UsageError.timedOut(.claude) : failure
+        throw UsageError.timedOut(.claude)
     }
 
     private func checkClaudeAuth(_ executable: URL, environment: [String: String], cancellation: ProbeCancellation) throws {

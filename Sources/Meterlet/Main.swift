@@ -40,10 +40,10 @@ enum MeterletMain {
     private static func probe(_ provider: ProviderID) {
         let cancellation = ProbeCancellation()
         do {
-            let executables = CLIResolver.candidates(provider)
+            guard let executable = CLIResolver.resolve(provider) else { throw UsageError.cliNotFound(provider) }
             let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                 .appendingPathComponent("Meterlet/Probes/\(provider.rawValue)")
-            let snapshot = try UsageClient(directory: root).fetch(provider, executables: executables, cancellation: cancellation)
+            let snapshot = try UsageClient(directory: root).fetch(provider, executable: executable, cancellation: cancellation)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601

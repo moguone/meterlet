@@ -1,59 +1,75 @@
 import Foundation
+import CoreFoundation
 
 public enum ClaudeUsageParser {
-    public static func cleanTerminal(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: #"\x1B\][^\x07]*(?:\x07|\x1B\\)"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"\x1B\[[0-?]*[ -/]*[@-~]"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"\x1B[78=>]"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-    }
-
-    public static func parse(_ text: String, now: Date = .now, timeZone: TimeZone = .current) throws -> UsageSnapshot {
-        let clean = cleanTerminal(text)
-        let header = try! NSRegularExpression(pattern: #"(?im)^\s*Current\s+(session|week(?:\s*\(([^)]+)\))?)\s*$"#)
-        let range = NSRange(clean.startIndex..., in: clean)
-        let matches = header.matches(in: clean, range: range)
+    /// Reads stream-json output, which may include non-JSON standard-error lines.
+    public static func parse(_ data: Data, now: Date = .now) throws -> UsageSnapshot {
+        var text: [String] = []
+        var hasResponse = false
+        var report: Any?
+        for line in data.split(separator: 10) {
+            guard let event = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any] else {
+                text.append(String(decoding: line, as: UTF8.self))
+                continue
+            }
+            switch event["type"] as? String {
+            case "assistant":
+                hasResponse = true
+                if let value = event["usage_report"] { report = value }
+                if let message = event["message"] as? [String: Any],
+                   let content = message["content"] as? [[String: Any]] {
+                    text += content.compactMap { $0["text"] as? String }
+                }
+            case "result":
+                hasResponse = true
+                if let result = event["result"] as? String { text.append(result) }
+            default: break
+            }
+        }
+        let failure = classifyFailure(text.joined(separator: "\n"))
+        guard let report else {
+            if failure != .noUsage(.claude) { throw failure }
+            throw hasResponse ? UsageError.unsupportedCLI(.claude) : UsageError.noUsage(.claude)
+        }
+        guard let report = report as? [String: Any],
+              let rateLimits = report["rate_limits"] as? [String: Any],
+              let limits = rateLimits["limits"] as? [[String: Any]], !limits.isEmpty else {
+            throw failure == .noUsage(.claude) ? UsageError.unavailable(.claude) : failure
+        }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let seconds = ISO8601DateFormatter()
         var found: [String: UsageWindow] = [:]
         var order: [String] = []
-        for (index, match) in matches.enumerated() {
-            guard let titleRange = Range(match.range(at: 1), in: clean) else { continue }
-            let title = String(clean[titleRange]).lowercased()
-            let scope = Range(match.range(at: 2), in: clean).map { String(clean[$0]).trimmingCharacters(in: .whitespaces) }
-            let isSession = title == "session"
-            let isAll = scope == nil || scope?.lowercased() == "all models"
-            let name = isSession || isAll ? nil : scope
-            let key = isSession ? "session" : (name.map { "weekly.\($0.lowercased())" } ?? "weekly")
-            let start = match.range.location + match.range.length
-            let end = index + 1 < matches.count ? matches[index + 1].range.location : (clean as NSString).length
-            let body = (clean as NSString).substring(with: NSRange(location: start, length: end - start))
-            // A repaint can contain an incomplete newer section. Keep the last complete one.
-            guard let used = percent(in: body) else { continue }
-            let reset = body.components(separatedBy: .newlines).first {
-                $0.range(of: #"(?i)\bresets?\b"#, options: .regularExpression) != nil
-            }?.trimmingCharacters(in: .whitespaces)
-            let date = reset.flatMap { ResetDateParser.parse($0, now: now, timeZone: timeZone) }
-            if found[key] == nil { order.append(key) }
-            found[key] = UsageWindow(
-                id: key, scope: name, durationMinutes: isSession ? 300 : 10_080,
-                usedPercent: used, resetsAt: date, resetDescription: date == nil ? reset : nil,
-                isPrimary: isSession
+        for limit in limits {
+            guard let percent = limit["percent"] as? NSNumber,
+                  CFGetTypeID(percent) != CFBooleanGetTypeID(),
+                  let kind = limit["kind"] as? String else { continue }
+            let model = (limit["scope"] as? [String: Any])?["model"] as? [String: Any]
+            let name = (model?["display_name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let id: String
+            switch kind {
+            case "session": id = "session"
+            case "weekly_all": id = "weekly"
+            case "weekly_scoped": id = "weekly.\(name?.lowercased() ?? "scoped")"
+            default: id = name.map { "\(kind).\($0.lowercased())" } ?? kind
+            }
+            let group = limit["group"] as? String
+            let resetsAt = (limit["resets_at"] as? String).flatMap {
+                fractional.date(from: $0) ?? seconds.date(from: $0)
+            }
+            if found[id] == nil { order.append(id) }
+            found[id] = UsageWindow(
+                id: id, scope: kind == "weekly_all" ? nil : name,
+                durationMinutes: group == "session" ? 300 : (group == "weekly" ? 10_080 : nil),
+                usedPercent: percent.doubleValue, resetsAt: resetsAt, isPrimary: kind == "session"
             )
         }
         let windows = order.compactMap { found[$0] }
-        guard !windows.isEmpty else { throw classifyFailure(clean) }
+        guard !windows.isEmpty else {
+            throw failure == .noUsage(.claude) ? UsageError.unavailable(.claude) : failure
+        }
         return UsageSnapshot(provider: .claude, windows: windows, fetchedAt: now)
-    }
-
-    private static func percent(in body: String) -> Double? {
-        let pattern = try! NSRegularExpression(pattern: #"(?i)(\d+(?:[.,]\d+)?)\s*%\s*(used|left|remaining)"#)
-        guard let match = pattern.firstMatch(in: body, range: NSRange(body.startIndex..., in: body)),
-              let valueRange = Range(match.range(at: 1), in: body),
-              let typeRange = Range(match.range(at: 2), in: body),
-              let number = Double(body[valueRange].replacingOccurrences(of: ",", with: ".")), number.isFinite else { return nil }
-        let used = body[typeRange].lowercased() == "used" ? number : 100 - number
-        return used >= 0 ? used : nil
     }
 
     public static func classifyFailure(_ text: String) -> UsageError {

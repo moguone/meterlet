@@ -3,7 +3,6 @@ import Testing
 @testable import MeterletCore
 
 private let now = ISO8601DateFormatter().date(from: "2026-09-06T05:20:00Z")!
-private let tokyo = TimeZone(identifier: "Asia/Tokyo")!
 
 private func fixture(_ file: String) throws -> Data {
     try Data(contentsOf: Bundle.module.url(forResource: file, withExtension: nil, subdirectory: "Fixtures")!)
@@ -27,50 +26,6 @@ private func fixture(_ file: String) throws -> Data {
         try CodexLimitsParser.parse(Data(#"{"rateLimits":{"primary":null}}"#.utf8))
     }
     #expect(throws: UsageError.invalidResponse(.codex)) { try CodexLimitsParser.parse(Data("bad".utf8)) }
-}
-
-@Test func claudeParsesScopedLimitsIndependently() throws {
-    let snapshot = try ClaudeUsageParser.parse(String(decoding: fixture("claude.txt"), as: UTF8.self), now: now, timeZone: tokyo)
-    #expect(snapshot.windows.count == 4)
-    #expect(snapshot.primary?.usedPercent == 55)
-    #expect(snapshot.windows.first(where: \.isFable)?.usedPercent == 68)
-    #expect(snapshot.windows.last?.usedPercent == 20)
-    #expect(snapshot.windows.allSatisfy { $0.resetsAt != nil })
-    #expect(snapshot.windows[1].resetsAt == snapshot.windows[2].resetsAt)
-}
-
-@Test func claudeDoesNotInventFableOrMissingQuota() throws {
-    let snapshot = try ClaudeUsageParser.parse("Current session\n0% used\nResets eventually", now: now)
-    #expect(snapshot.windows.count == 1)
-    #expect(snapshot.windows.first?.usedPercent == 0)
-    #expect(snapshot.windows.first?.resetsAt == nil)
-    #expect(snapshot.windows.first?.resetDescription == "Resets eventually")
-    #expect(!snapshot.windows.contains { $0.isFable })
-    #expect(throws: UsageError.noUsage(.claude)) { try ClaudeUsageParser.parse("Current session\nLoading…") }
-}
-
-@Test func terminalRepaintsDoNotDuplicateWindows() throws {
-    let text = "\u{1b}[32mCurrent session\u{1b}[0m\r\n10% used\nResets 4pm\nCurrent session\n12% used\nResets 4pm\nCurrent session\n"
-    let snapshot = try ClaudeUsageParser.parse(text, now: now, timeZone: tokyo)
-    #expect(snapshot.windows.count == 1)
-    #expect(snapshot.primary?.usedPercent == 12)
-}
-
-@Test func claudeErrorsDoNotBecomeZeroUsage() {
-    #expect(throws: UsageError.signInRequired(.claude)) { try ClaudeUsageParser.parse("Not logged in") }
-    #expect(throws: UsageError.setupRequired(.claude)) { try ClaudeUsageParser.parse("Choose the text style") }
-    #expect(throws: UsageError.rateLimited(.claude)) { try ClaudeUsageParser.parse("Error: 429 Too many requests") }
-}
-
-@Test func resetDatesRespectTimezoneMidnightAndYearBoundary() {
-    #expect(ResetDateParser.parse("Resets 4:30pm (Asia/Tokyo)", now: now)?.timeIntervalSince(now) == 7800)
-    #expect(ResetDateParser.parse("Resets 1am (Asia/Tokyo)", now: now)?.timeIntervalSince(now) == 38400)
-    #expect(ResetDateParser.parse("Resets tomorrow at 1am (Asia/Tokyo)", now: now)?.timeIntervalSince(now) == 38400)
-    let december = ISO8601DateFormatter().date(from: "2026-12-31T10:00:00Z")!
-    let january = ResetDateParser.parse("Resets Jan 1 at 4pm (Asia/Tokyo)", now: december)!
-    #expect(january == ISO8601DateFormatter().date(from: "2027-01-01T07:00:00Z")!)
-    #expect(ResetDateParser.parse("Resets 4pm (Unknown/Timezone)", now: now) == nil)
-    #expect(ResetDateParser.parse("Resets Sep 1, 2026 4pm (Asia/Tokyo)", now: now)! < now)
 }
 
 @Test func expiredAndStaleDataNeverLooksLive() {
@@ -104,7 +59,7 @@ private func fixture(_ file: String) throws -> Data {
 }
 
 @Test func languagesHaveMatchingTranslations() {
-    for key in ["settings.menuWindow", "settings.menu", "usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly", "error.codexNotFound", "error.claudeNotFound", "error.claudeSignIn"] {
+    for key in ["settings.menuWindow", "settings.menu", "usage.title", "status.fableMissing", "error.signIn", "settings.privacy", "window.weekly", "error.codexNotFound", "error.claudeNotFound", "error.claudeSignIn", "error.updateCLI"] {
         #expect(L10n(.en).text(key) != key)
         #expect(L10n(.ja).text(key) != key)
         #expect(L10n(.en).text(key) != L10n(.ja).text(key))
@@ -121,16 +76,16 @@ private func fixture(_ file: String) throws -> Data {
 }
 
 @Test func menuWindowDefaultsToWeeklyAndRespectsProviderSelection() throws {
-    let claude = try ClaudeUsageParser.parse(String(decoding: fixture("claude.txt"), as: UTF8.self), now: now, timeZone: tokyo)
+    let claude = try ClaudeUsageParser.parse(fixture("claude-usage.jsonl"), now: now)
     #expect(claude.primary?.id == "session")
     #expect(claude.menuWindow(preferring: nil)?.id == "weekly")
     #expect(claude.menuWindow(preferring: "session")?.id == "session")
     #expect(claude.menuWindow(preferring: "weekly.fable")?.id == "weekly.fable")
     #expect(claude.menuWindow(preferring: "missing")?.id == "weekly")
-    #expect(claude.menuText(at: now) == "32%")
-    #expect(claude.menuText(at: now, windowID: "session") == "55%")
-    #expect(claude.menuText(at: now, windowID: "weekly.fable") == "68%")
-    #expect(claude.menuText(at: now, windowID: "missing") == "32%")
+    #expect(claude.menuText(at: now) == "11%")
+    #expect(claude.menuText(at: now, windowID: "session") == "6%")
+    #expect(claude.menuText(at: now, windowID: "weekly.fable") == "19%")
+    #expect(claude.menuText(at: now, windowID: "missing") == "11%")
     let codex = try CodexLimitsParser.parse(fixture("codex.json"), now: now)
     #expect(codex.menuWindow(preferring: nil)?.id == "codex.primary")
     #expect(codex.menuText(at: now) == "28%")
@@ -152,4 +107,91 @@ private func fixture(_ file: String) throws -> Data {
     snapshot.windows.removeAll()
     #expect(snapshot.menuWindow(preferring: nil) == nil)
     #expect(snapshot.menuText(at: now) == "—")
+}
+
+@Test func claudeParsesStructuredLimits() throws {
+    let snapshot = try ClaudeUsageParser.parse(fixture("claude-usage.jsonl"), now: now)
+    #expect(snapshot.fetchedAt == now)
+    #expect(snapshot.windows.map(\.id) == ["session", "weekly", "weekly.fable"])
+    #expect(snapshot.windows.map(\.scope) == [nil, nil, "Fable"])
+    #expect(snapshot.windows.map(\.durationMinutes) == [300, 10080, 10080])
+    #expect(snapshot.windows.map(\.usedPercent) == [6, 11, 19])
+    #expect(snapshot.windows.map(\.isPrimary) == [true, false, false])
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    #expect(snapshot.windows.map(\.resetsAt) == [
+        "2026-09-16T19:00:00.661315+00:00", "2026-09-20T08:00:00.661340+00:00", "2026-09-20T08:00:00.661585+00:00",
+    ].map { formatter.date(from: $0) })
+    #expect(snapshot.windows.allSatisfy { $0.resetDescription == nil })
+}
+
+private func structuredUsage(_ limits: String) -> Data {
+    Data(#"{"type":"assistant","usage_report":{"rate_limits":{"limits":\#(limits.replacingOccurrences(of: "\n", with: ""))}}}"#.utf8)
+}
+
+@Test func claudeKeepsUnknownKindsAndOptionalDates() throws {
+    let snapshot = try ClaudeUsageParser.parse(structuredUsage("""
+    [
+      {"kind":"monthly_all","group":"monthly","percent":3,"resets_at":null},
+      {"kind":"monthly_scoped","group":"monthly","percent":4,"scope":{"model":{"display_name":"Future"}},"resets_at":"bad"},
+      {"kind":"weekly_scoped","group":"weekly","percent":5,"scope":{"model":{"display_name":""}},"resets_at":"2026-09-20T08:00:00Z"}
+    ]
+    """))
+    #expect(snapshot.windows.map(\.id) == ["monthly_all", "monthly_scoped.future", "weekly.scoped"])
+    #expect(snapshot.windows.map(\.durationMinutes) == [nil, nil, 10080])
+    #expect(snapshot.windows.map(\.resetsAt) == [nil, nil, ISO8601DateFormatter().date(from: "2026-09-20T08:00:00Z")])
+    #expect(!snapshot.windows.contains { $0.isFable })
+}
+
+@Test func claudeUsesLastReportAndLastDuplicateInFirstSeenOrder() throws {
+    var data = try fixture("claude-usage.jsonl")
+    data.append(structuredUsage("""
+    [
+      {"kind":"weekly_all","group":"weekly","percent":1,"scope":{"model":{"display_name":"ignored"}}},
+      {"kind":"session","group":"session","percent":2},
+      {"kind":"weekly_all","group":"weekly","percent":3},
+      {"kind":"weekly_scoped","group":"weekly","percent":"19"},
+      {"kind":"weekly_scoped","group":"weekly","percent":true}
+    ]
+    """.replacingOccurrences(of: "\n", with: "")))
+    let snapshot = try ClaudeUsageParser.parse(data)
+    #expect(snapshot.windows.map(\.id) == ["weekly", "session"])
+    #expect(snapshot.windows.map(\.usedPercent) == [3, 2])
+    #expect(snapshot.windows.first?.scope == nil)
+}
+
+@Test(arguments: ["[]", #"[{"kind":"session","percent":"invalid"}]"#])
+func claudeMissingLimitsAreUnavailable(limits: String) throws {
+    let data = structuredUsage(limits)
+    #expect(throws: UsageError.unavailable(.claude)) { try ClaudeUsageParser.parse(data) }
+    var withError = data
+    withError.append(Data("\n".utf8))
+    withError.append(Data(#"{"type":"result","result":"Failed to load usage data","is_error":true}"#.utf8))
+    #expect(throws: UsageError.unavailable(.claude)) { try ClaudeUsageParser.parse(withError) }
+}
+
+@Test func claudeIgnoresNonJSONNoiseAndInitMetadata() throws {
+    var data = Data("arbitrary hook output\n".utf8)
+    data.append(try fixture("claude-usage.jsonl"))
+    #expect(try ClaudeUsageParser.parse(data).windows.count == 3)
+    let initOnly = Data(#"{"type":"system","slash_commands":["not logged in","unknown option"],"cwd":"/error fetching"}"#.utf8)
+    #expect(throws: UsageError.noUsage(.claude)) { try ClaudeUsageParser.parse(initOnly) }
+    var oldCLI = initOnly
+    oldCLI.append(Data("\n{\"type\":\"assistant\"}".utf8))
+    #expect(throws: UsageError.unsupportedCLI(.claude)) { try ClaudeUsageParser.parse(oldCLI) }
+}
+
+@Test(arguments: [
+    ("Not logged in", UsageError.signInRequired(.claude)),
+    ("Choose the text style", UsageError.setupRequired(.claude)),
+    ("Error: 429 Too many requests", UsageError.rateLimited(.claude)),
+    ("error: unknown option", UsageError.unsupportedCLI(.claude)),
+    ("Failed to load usage data", UsageError.unavailable(.claude)),
+])
+func claudeErrorsDoNotBecomeZeroUsage(text: String, error: UsageError) throws {
+    #expect(throws: error) { try ClaudeUsageParser.parse(Data(text.utf8)) }
+    let result = try JSONSerialization.data(withJSONObject: ["type": "result", "is_error": true, "result": text] as [String: Any])
+    #expect(throws: error) { try ClaudeUsageParser.parse(result) }
+    let assistant = try JSONSerialization.data(withJSONObject: ["type": "assistant", "message": ["content": [["text": text]]]])
+    #expect(throws: error) { try ClaudeUsageParser.parse(assistant) }
 }

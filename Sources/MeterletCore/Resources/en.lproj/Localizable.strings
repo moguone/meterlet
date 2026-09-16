@@ -30,7 +30,7 @@
 "error.cliNotFound" = "CLI not found. Install it or choose its location in Settings.";
 "error.signIn" = "Sign in to the official CLI to see subscription usage.";
 "error.setup" = "Finish the official CLI’s first-time setup in Terminal.";
-"error.updateCLI" = "Update the official CLI to a current version.";
+"error.updateCLI" = "Update the official CLI. Claude Code 2.1.273 or later is required.";
 "error.timeout" = "The CLI did not respond in time. Try again shortly.";
 "error.noUsage" = "No subscription limits were reported. API billing is separate.";
 "error.invalidResponse" = "The CLI returned an unrecognized usage format.";
@@ -60,6 +60,6 @@
 "settings.updateExplanation" = "Check GitHub once a day. Review each update before downloading and installing it.";
 "settings.updateUnavailable" = "App updates are available in the packaged app.";
 "settings.lastUpdateCheck" = "Last checked %@";
-"error.codexNotFound" = "Codex was not found. Install the ChatGPT/Codex desktop app or Codex CLI, or choose its location in Settings.";
-"error.claudeNotFound" = "Claude Code was not found. Set up the Code feature in Claude desktop, or install Claude Code CLI.";
-"error.claudeSignIn" = "Sign in to Claude Code using Set up in Terminal. Its sign-in may be separate from the Claude desktop app; no separate CLI install is needed when a desktop runtime is detected.";
+"error.codexNotFound" = "Codex CLI was not found. Install it or choose its location in Settings.";
+"error.claudeNotFound" = "Claude Code CLI was not found. Install it or choose its location in Settings.";
+"error.claudeSignIn" = "Sign in to Claude Code using Set up in Terminal.";
