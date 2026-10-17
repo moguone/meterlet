@@ -34,6 +34,7 @@ final class CLIProcess {
     private(set) var input: FileHandle
     private(set) var output: FileHandle
     private var stopped = false
+    private var launched = false
     private var processGroup: pid_t?
 
     init(executable: URL, arguments: [String], directory: URL, environment: [String: String],
@@ -59,6 +60,7 @@ final class CLIProcess {
         do {
             try cancellation.check()
             try process.run()
+            launched = true
             let pid = process.processIdentifier
             if getpgid(pid) == pid { processGroup = pid }
         } catch {
@@ -101,6 +103,11 @@ final class CLIProcess {
         stopped = true
         try? input.close()
         try? output.close()
+        // A cancelled probe throws from init before launch. Waiting on a task that never ran can block forever.
+        guard launched else {
+            cancellation.unregister(process)
+            return
+        }
         if let group = processGroup { kill(-group, SIGTERM) }
         else if process.isRunning { process.terminate() }
         let deadline = Date().addingTimeInterval(0.5)

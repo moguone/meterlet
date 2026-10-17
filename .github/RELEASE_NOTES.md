@@ -1,6 +1,7 @@
-Fixes keyboard focus on macOS 27.
+Fixes keyboard focus on macOS 27 and a refresh that could stop.
 
 - On macOS 27, Meterlet did not become the active app when you opened the usage panel or Settings. ⌘1, ⌘, and ⌘Q went to the app you were using before, typing in Settings did not reach its fields, and the panel could close on its own. Meterlet now becomes active when you open its windows.
+- If a refresh was cancelled just before starting the CLI, for example when the Mac went to sleep, that service could stop updating until Meterlet was restarted. This no longer happens.
 
 **Apple Silicon · macOS 14 or later.** The release ZIP is Developer ID-signed, notarized by Apple, and stapled. Its SHA-256 checksum and the signed Sparkle update feed are attached. CI development artifacts are not release downloads.
 
