@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
         popover.contentViewController = controller
         popover.contentSize = NSSize(width: 360, height: height)
         store.opened()
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         // NSStatusBarButton uses flipped coordinates: maxY is its lower edge.
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: button.isFlipped ? .maxY : .minY)
         popover.contentViewController?.view.window?.makeKey()
@@ -111,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
     private func showContextMenu() {
         popover.performClose(nil)
         guard let button = statusItem?.button else { return }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         let menu = NSMenu()
         menu.addItem(withTitle: store.l10n.text("usage.title"), action: #selector(togglePopover), keyEquivalent: "").target = self
         menu.addItem(withTitle: store.l10n.text("action.settings"), action: #selector(showSettings), keyEquivalent: ",").target = self
@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
             window.center()
             settingsWindow = window
         }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
@@ -184,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
         window.isReleasedWhenClosed = false
         window.center()
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         previewWindow = window
     }
 
