@@ -19,7 +19,7 @@ jobs:
       - name: Package Apple Silicon app
         run: ./scripts/package-app.sh
       - name: Upload build
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: Meterlet-macOS-arm64
           path: |
