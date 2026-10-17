@@ -29,7 +29,7 @@ final class AppUpdater: NSObject, ObservableObject, @preconcurrency SPUStandardU
     func checkForUpdates() {
         guard canCheckForUpdates else { return }
         willPresentUpdate?()
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         controller?.checkForUpdates(nil)
     }
 
