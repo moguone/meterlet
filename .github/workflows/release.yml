@@ -19,7 +19,7 @@ jobs:
           export VERSION="${RELEASE_TAG#v}"
           ./scripts/package-app.sh
       - name: Upload development build
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: Meterlet-development-arm64
           path: |
